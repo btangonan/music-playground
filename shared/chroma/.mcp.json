@@ -3,7 +3,7 @@
     "chroma": {
       "type": "stdio",
       "command": "uvx",
-      "args": ["-qq", "chroma-mcp", "--client-type", "persistent", "--data-dir", "/Users/bradleytangonan/Desktop/my apps/music-playground/.chroma"],
+      "args": ["-qq", "chroma-mcp", "--client-type", "persistent", "--data-dir", "/Users/bradleytangonan/Desktop/my apps/music-playground/shared/chroma"],
       "env": {
         "ANONYMIZED_TELEMETRY": "FALSE",
         "PYTHONUNBUFFERED": "1",
