@@ -46,9 +46,7 @@ function clamp(value: number, min: number, max: number): number {
 // ════════════════════════════════════════════════════════════════════════════
 // Macro Type 1: Space - Controls reverb decay and wet amount
 // ════════════════════════════════════════════════════════════════════════════
-export function spaceM
-
-acro(effects: EffectConfig[], amount: number) {
+export function spaceMacro(effects: EffectConfig[], amount: number) {
   const clamped = clamp(amount, 0, 1);
 
   for (const fx of effects) {

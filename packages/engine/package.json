@@ -8,7 +8,11 @@
     "build":"tsc -p tsconfig.json",
     "test":"vitest run"
   },
+  "peerDependencies":{
+    "tone":"^14 || ^15"
+  },
   "devDependencies":{
+    "tone":"^14.8.49",
     "typescript":"^5.6.0",
     "vitest":"^2.0.0"
   }
