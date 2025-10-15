@@ -26,17 +26,27 @@ music-playground/
 ## Quick Start
 
 ```bash
-# Install dependencies
+# 1. Install dependencies (requires pnpm 9+)
 pnpm install
 
-# Build all packages
+# 2. Build packages (engine must build first)
 pnpm build
 
-# Run Composer in dev mode
-pnpm -F composer dev
+# 3. Run Composer app
+pnpm -w -F composer dev
+# Opens http://localhost:5173
 
-# Run tests
-pnpm test
+# 4. Click Play button to start audio
+# - Move Space/Color/Hype sliders to hear macro effects
+# - First sound should appear under 2.5 seconds
+```
+
+**Post-Merge Verification:**
+```bash
+# After merging all 3 PRs, run automated checks:
+./verify-merge.sh
+
+# Confirms: vendor removed, builds pass, tests pass, Tone versions aligned
 ```
 
 ## Development
@@ -51,9 +61,17 @@ pnpm test
 ### Project Structure
 
 - **@music/engine**: Core audio engine with macros, effects, and scheduling
+  - Headless (no DOM) - works in Node.js and browser
+  - Tone.js as peer dependency
+  - Public API: `createEngine()` facade
 - **@music/ui**: Shared UI components (buttons, sliders, etc.)
 - **composer**: Main step sequencer app with Transport and MacroStrip
+  - Vite + React + TypeScript
+  - Wired to engine via public API
 - **lab**: Experimental features and testing ground
+
+**For detailed architecture:** See [ARCHITECTURE.md](./ARCHITECTURE.md)
+**For development guide:** See [DEVELOPMENT.md](./DEVELOPMENT.md)
 
 ### Tone.js Version Note
 
