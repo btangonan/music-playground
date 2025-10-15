@@ -4,3 +4,7 @@ dist
 .DS_Store
 pnpm-lock.yaml
 coverage
+
+# Chroma memory store
+.chroma/
+shared/chroma/
