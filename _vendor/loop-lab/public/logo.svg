@@ -1,0 +1,10 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Lime/yellow-green background -->
+  <rect width="512" height="512" fill="#D4E724"/>
+
+  <!-- Left "L" -->
+  <path d="M50 140 L120 140 L120 280 L240 280 L240 350 L50 350 Z" fill="#2B2B2B"/>
+
+  <!-- Right "L" -->
+  <path d="M270 140 L340 140 L340 280 L460 280 L460 350 L270 350 Z" fill="#2B2B2B"/>
+</svg>
