@@ -34,14 +34,5 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Check bundle size (Composer)
-        run: |
-          if [ -f "apps/composer/dist/assets/*.js" ]; then
-            SIZE=$(gzip -c apps/composer/dist/assets/*.js | wc -c)
-            MAX_SIZE=$((150 * 1024))  # 150 KB
-            if [ $SIZE -gt $MAX_SIZE ]; then
-              echo "Bundle size $SIZE exceeds limit $MAX_SIZE"
-              exit 1
-            fi
-            echo "Bundle size: $SIZE bytes (under 150 KB limit)"
-          fi
+      - name: Check bundle size with size-limit
+        run: pnpm size
