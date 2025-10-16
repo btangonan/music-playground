@@ -7,3 +7,4 @@ coverage
 # Chroma memory store
 .chroma/
 shared/chroma/
+.turbo/
