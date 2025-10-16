@@ -1,7 +1,7 @@
 {
   "name": "music-playground",
   "private": true,
-  "packageManager": "pnpm@9.0.0",
+  "packageManager": "pnpm@8.15.9",
   "workspaces": ["apps/*","packages/*","shared/*"],
   "scripts": {
     "build": "turbo run build",
