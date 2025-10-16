@@ -80,8 +80,8 @@ export function makeReverseReverb(
       // Check if recording has data
       const blob = recording;
       if (blob.size === 0) {
-        if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-          console.log('[Reverse Reverb] Empty recording, skipping');
+        if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+          globalThis.console.log('[Reverse Reverb] Empty recording, skipping');
         }
         isRecording = false;
         return;
@@ -104,8 +104,8 @@ export function makeReverseReverb(
       }
 
       if (!hasAudio) {
-        if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-          console.log('[Reverse Reverb] Silent recording, skipping');
+        if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+          globalThis.console.log('[Reverse Reverb] Silent recording, skipping');
         }
         isRecording = false;
         return;
@@ -149,8 +149,8 @@ export function makeReverseReverb(
       reversedPlayer.start();
 
       // Debug logging
-      if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-        console.log('[Reverse Reverb] Triggered successfully:', {
+      if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+        globalThis.console.log('[Reverse Reverb] Triggered successfully:', {
           recordLength,
           predelayMs,
           reverbDecay,
@@ -158,8 +158,8 @@ export function makeReverseReverb(
         });
       }
     } catch (error) {
-      if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-        console.error('[Reverse Reverb] Error:', error);
+      if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+        globalThis.console.error('[Reverse Reverb] Error:', error);
       }
     }
 
@@ -207,8 +207,8 @@ export function makeReverseReverb(
     mixer.connect(output);
 
     // DEBUG: Log initial gain values
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-      console.log('[Reverse Reverb] Initial routing:', {
+    if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+      globalThis.console.log('[Reverse Reverb] Initial routing:', {
         dryGain: dryGain.gain.value,
         wetGain: wetGain.gain.value,
         mixerGain: mixer.gain.value
@@ -225,8 +225,8 @@ export function makeReverseReverb(
     startAudioMonitoring();
 
     // Debug logging
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-      console.log('[Reverse Reverb] Initialized with audio-level auto-trigger:', {
+    if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+      globalThis.console.log('[Reverse Reverb] Initialized with audio-level auto-trigger:', {
         predelayMs,
         recordLength,
         reverbDecay,
@@ -247,28 +247,28 @@ export function makeReverseReverb(
       if (!isEnabled || isRecording) return;
 
       // Get waveform data from analyser
-      const waveform = analyser.getValue();
+      const waveform = analyser.getValue() as Float32Array;
 
       // Calculate RMS (root mean square) amplitude
       let sum = 0;
       for (let i = 0; i < waveform.length; i++) {
-        const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+        const sample = waveform[i] as number;
         sum += sample * sample;
       }
       const rms = Math.sqrt(sum / waveform.length);
 
       // DEBUG: Calculate RMS from input analyser for comparison
-      const inputWaveform = inputAnalyser.getValue();
+      const inputWaveform = inputAnalyser.getValue() as Float32Array;
       let inputSum = 0;
       for (let i = 0; i < inputWaveform.length; i++) {
-        const sample = typeof inputWaveform[i] === 'number' ? inputWaveform[i] : 0;
+        const sample = inputWaveform[i] as number;
         inputSum += sample * sample;
       }
       const inputRMS = Math.sqrt(inputSum / inputWaveform.length);
 
       // Debug: Log RMS values continuously to diagnose audio detection
-      if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-        console.log('[Reverse Reverb] Mixer RMS:', rms.toFixed(6), '| Input RMS:', inputRMS.toFixed(6), '| Threshold:', amplitudeThreshold, '| Exceeded:', rms > amplitudeThreshold);
+      if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+        globalThis.console.log('[Reverse Reverb] Mixer RMS:', rms.toFixed(6), '| Input RMS:', inputRMS.toFixed(6), '| Threshold:', amplitudeThreshold, '| Exceeded:', rms > amplitudeThreshold);
       }
 
       // Check if enough time has passed since last trigger (cooldown)
@@ -279,8 +279,8 @@ export function makeReverseReverb(
       if (rms > amplitudeThreshold) {
         lastTriggerTime = now;
 
-        if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-          console.log('[Reverse Reverb] Audio detected, triggering:', {
+        if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+          globalThis.console.log('[Reverse Reverb] Audio detected, triggering:', {
             rms: rms.toFixed(4),
             threshold: amplitudeThreshold
           });
@@ -290,8 +290,8 @@ export function makeReverseReverb(
       }
     }, 500); // Check every 500ms
 
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-      console.log('[Reverse Reverb] Audio monitoring started');
+    if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+      globalThis.console.log('[Reverse Reverb] Audio monitoring started');
     }
   }
 
@@ -303,8 +303,8 @@ export function makeReverseReverb(
       clearInterval(monitorInterval);
       monitorInterval = null;
 
-      if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-        console.log('[Reverse Reverb] Audio monitoring stopped');
+      if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+        globalThis.console.log('[Reverse Reverb] Audio monitoring stopped');
       }
     }
   }
@@ -353,8 +353,8 @@ export function makeReverseReverb(
       headFade.dispose();
     }
 
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-      console.log('[Reverse Reverb] Disposed');
+    if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB) {
+      globalThis.console.log('[Reverse Reverb] Disposed');
     }
   }
 
@@ -362,10 +362,10 @@ export function makeReverseReverb(
    * Get current RMS level from analyser for diagnostics
    */
   function getRMS(): number {
-    const waveform = analyser.getValue();
+    const waveform = analyser.getValue() as Float32Array;
     let sum = 0;
     for (let i = 0; i < waveform.length; i++) {
-      const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+      const sample = waveform[i] as number;
       sum += sample * sample;
     }
     return Math.sqrt(sum / waveform.length);

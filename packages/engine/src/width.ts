@@ -26,8 +26,8 @@ declare global {
 }
 
 function debugLog(...args: any[]) {
-  if (typeof window !== 'undefined' && window.LL_DEBUG_WIDTH) {
-    console.log('[Width]', ...args);
+  if (typeof globalThis !== 'undefined' && globalThis.LL_DEBUG_WIDTH) {
+    globalThis.console.log('[Width]', ...args);
   }
 }
 

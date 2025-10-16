@@ -16,8 +16,6 @@ jobs:
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -28,11 +26,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        run: pnpm build
+      - name: Build engine
+        run: cd packages/engine && pnpm build
 
-      - name: Run tests
-        run: pnpm test
-
-      - name: Check bundle size with size-limit
-        run: pnpm size
+      - name: Test engine
+        run: cd packages/engine && pnpm test

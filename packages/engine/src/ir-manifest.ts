@@ -55,8 +55,8 @@ export function getIR(id: string): IRMeta | undefined {
  * Debug logging for IR loading (controlled by LL_DEBUG_IR flag)
  */
 export function logIRLoad(id: string, status: 'loading' | 'loaded' | 'error', error?: Error) {
-  if (typeof window !== 'undefined' && (window as any).LL_DEBUG_IR) {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_IR) {
     const timestamp = new Date().toISOString();
-    console.log(`[IR ${timestamp}] ${id}: ${status}`, error ? error.message : '');
+    globalThis.console.log(`[IR ${timestamp}] ${id}: ${status}`, error ? error.message : '');
   }
 }

@@ -59,33 +59,6 @@ export const Bus = {
 const dest = new Tone.Gain(1).connect(Bus.master);
 Bus.recordTap.connect(dest);
 
-// Recording
-let mediaRecorder: MediaRecorder | null = null;
-let chunks: Blob[] = [];
-
-export function startRec() {
-  if (mediaRecorder?.state === 'recording') return;
-  const stream = (Tone.getContext() as any).createMediaStreamDestination();
-  Bus.master.connect(stream);
-  mediaRecorder = new MediaRecorder(stream.stream);
-  mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-  mediaRecorder.onstop = () => {
-    const blob = new Blob(chunks, { type: 'audio/wav' });
-    chunks = [];
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'harmonic-sketch.wav';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  mediaRecorder.start();
-}
-
-export function stopRec() {
-  mediaRecorder?.stop();
-}
-
 // ---- Trigger helpers -------------------------------------------------------
 export function trigger(kind: 'keys'|'bass'|'drums'|'pad_gate', synth: any, payload: string, time?: any) {
   if (kind === 'drums') {
@@ -167,21 +140,24 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
     }).connect(out);
 
     // DEBUG: Add analyser to instrument output to verify audio generation
-    const instrumentAnalyser = new Tone.Analyser('waveform', 2048);
-    out.connect(instrumentAnalyser);
+    const DEV = process.env.NODE_ENV !== 'production';
+    const instrumentAnalyser = DEV ? new Tone.Analyser('waveform', 2048) : undefined;
+    if (instrumentAnalyser) {
+      out.connect(instrumentAnalyser);
+    }
 
     // DEBUG: Monitor instrument output RMS every 500ms
     let debugInterval: NodeJS.Timeout | null = null;
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
+    if (DEV && typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
       debugInterval = setInterval(() => {
-        const waveform = instrumentAnalyser.getValue();
+        const waveform = instrumentAnalyser.getValue() as Float32Array;
         let sum = 0;
         for (let i = 0; i < waveform.length; i++) {
-          const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+          const sample = waveform[i] as number;
           sum += sample * sample;
         }
         const rms = Math.sqrt(sum / waveform.length);
-        console.log('[Keys Instrument] Output RMS:', rms.toFixed(6));
+        globalThis.console.log('[Keys Instrument] Output RMS:', rms.toFixed(6));
       }, 500);
     }
 
@@ -194,19 +170,19 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
         synth.triggerAttackRelease(note, duration, time);
 
         // DEBUG: Log note trigger and check RMS immediately after
-        if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
-          console.log('[Keys Instrument] Note triggered:', note, duration);
+        if (DEV && typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
+          globalThis.console.log('[Keys Instrument] Note triggered:', note, duration);
 
           // Check RMS immediately (after a brief delay to let audio start)
           setTimeout(() => {
-            const waveform = instrumentAnalyser.getValue();
+            const waveform = instrumentAnalyser.getValue() as Float32Array;
             let sum = 0;
             for (let i = 0; i < waveform.length; i++) {
-              const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+              const sample = waveform[i] as number;
               sum += sample * sample;
             }
             const rms = Math.sqrt(sum / waveform.length);
-            console.log('[Keys Instrument] Output RMS after note trigger:', rms.toFixed(6));
+            globalThis.console.log('[Keys Instrument] Output RMS after note trigger:', rms.toFixed(6));
           }, 50); // 50ms delay to let envelope attack
         }
       },
@@ -420,7 +396,8 @@ export async function makeEffect(type: string): Promise<EffectConfig> {
       logIRLoad(defaultIR.id, 'loading');
 
       const convolver = new Tone.Convolver(defaultIR.url);
-      await convolver.ready;
+      // Tone.js v14: Convolver.ready is a Promise (TypeScript types incomplete)
+      await (convolver as any).ready;
 
       logIRLoad(defaultIR.id, 'loaded');
 
@@ -689,7 +666,7 @@ export function connectChain(instrumentOut: Tone.Gain, effects: EffectConfig[] =
   try { instrumentOut.disconnect(); } catch {}
 
   // DEBUG: Log connection chain
-  console.log('[connectChain] Connecting:', {
+  globalThis.console.log('[connectChain] Connecting:', {
     instrumentOut,
     effectCount: effects.length,
     effectTypes: effects.map(e => e.type)
@@ -698,13 +675,13 @@ export function connectChain(instrumentOut: Tone.Gain, effects: EffectConfig[] =
   let prev: Tone.ToneAudioNode = instrumentOut;
   for (const fx of effects) {
     // do not disconnect fx IO here; simply chain
-    console.log('[connectChain] Connecting to effect:', fx.type, 'input:', fx.input);
+    globalThis.console.log('[connectChain] Connecting to effect:', fx.type, 'input:', fx.input);
     prev.connect(fx.input);
     prev = fx.output;
   }
   prev.connect(Bus.master);
 
-  console.log('[connectChain] Chain complete. Final output connected to Bus.master');
+  globalThis.console.log('[connectChain] Chain complete. Final output connected to Bus.master');
 
   return prev;
 }
@@ -725,7 +702,10 @@ export const Engine = {
   play: () => { Tone.Transport.start(); },
   stop: () => {
     Tone.Transport.stop();
-    window.dispatchEvent(new CustomEvent('playhead', { detail:{ id:null, index:-1 }}));
+    // Safe DOM event dispatch for browser contexts
+    if (typeof globalThis !== 'undefined' && (globalThis as any).CustomEvent && (globalThis as any).dispatchEvent) {
+      (globalThis as any).dispatchEvent(new (globalThis as any).CustomEvent('playhead', { detail: { id: null, index: -1 } }));
+    }
   },
   getContext: () => Tone.getContext(),
   getTransport: () => Tone.Transport

@@ -40,8 +40,8 @@ declare global {
 }
 
 function debugLog(...args: any[]) {
-  if (typeof window !== 'undefined' && window.LL_DEBUG_FX_BUSES) {
-    console.log('[FX Buses]', ...args);
+  if (typeof globalThis !== 'undefined' && globalThis.LL_DEBUG_FX_BUSES) {
+    globalThis.console.log('[FX Buses]', ...args);
   }
 }
 

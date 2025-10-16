@@ -38,8 +38,8 @@ declare global {
 }
 
 function debugLog(...args: any[]) {
-  if (typeof window !== 'undefined' && window.LL_DEBUG_PARAM_CURVES) {
-    console.log('[Param Curves]', ...args);
+  if (typeof globalThis !== 'undefined' && globalThis.LL_DEBUG_PARAM_CURVES) {
+    globalThis.console.log('[Param Curves]', ...args);
   }
 }
 

@@ -1,0 +1,15 @@
+
+> @music/engine@0.1.0 test /Users/bradleytangonan/Desktop/my apps/music-playground/packages/engine
+> vitest run
+
+
+ RUN  v2.1.9 /Users/bradleytangonan/Desktop/my apps/music-playground/packages/engine
+
+ ✓ src/__tests__/ir-manifest.test.ts (4 tests) 2ms
+ ✓ src/__tests__/api-shape.test.ts (5 tests) 2ms
+
+ Test Files  2 passed (2)
+      Tests  9 passed (9)
+   Start at  20:18:52
+   Duration  182ms (transform 23ms, setup 0ms, collect 25ms, tests 4ms, environment 0ms, prepare 60ms)
+

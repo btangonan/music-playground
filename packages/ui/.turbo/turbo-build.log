@@ -1,0 +1,157 @@
+
+> @music/ui@0.1.0 build /Users/bradleytangonan/Desktop/my apps/music-playground/packages/ui
+> tsc -p tsconfig.json
+
+src/components/accordion.tsx(2,37): error TS2307: Cannot find module '@radix-ui/react-accordion' or its corresponding type declarations.
+src/components/accordion.tsx(3,29): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/accordion.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/alert-dialog.tsx(2,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog' or its corresponding type declarations.
+src/components/alert-dialog.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/alert-dialog.tsx(5,32): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/components/alert.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/alert.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/aspect-ratio.tsx(1,39): error TS2307: Cannot find module '@radix-ui/react-aspect-ratio' or its corresponding type declarations.
+src/components/avatar.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-avatar' or its corresponding type declarations.
+src/components/avatar.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/badge.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/badge.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/badge.tsx(25,29): error TS2339: Property 'variant' does not exist on type 'BadgeProps'.
+src/components/breadcrumb.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+src/components/breadcrumb.tsx(3,46): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/breadcrumb.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/button.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+src/components/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/button.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/button.tsx(40,17): error TS2339: Property 'variant' does not exist on type 'ButtonProps'.
+src/components/button.tsx(40,26): error TS2339: Property 'size' does not exist on type 'ButtonProps'.
+src/components/calendar.tsx(2,43): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/calendar.tsx(3,27): error TS2307: Cannot find module 'react-day-picker' or its corresponding type declarations.
+src/components/calendar.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/calendar.tsx(6,32): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/components/card.tsx(3,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/carousel.tsx(2,61): error TS2307: Cannot find module 'embla-carousel-react' or its corresponding type declarations.
+src/components/carousel.tsx(3,39): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/carousel.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/carousel.tsx(6,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/components/chart.tsx(2,36): error TS2307: Cannot find module 'recharts' or its corresponding type declarations.
+src/components/chart.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/chart.tsx(163,25): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/chart.tsx(163,31): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/components/chart.tsx(249,21): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/components/checkbox.tsx(2,36): error TS2307: Cannot find module '@radix-ui/react-checkbox' or its corresponding type declarations.
+src/components/checkbox.tsx(3,23): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/checkbox.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/collapsible.tsx(1,39): error TS2307: Cannot find module '@radix-ui/react-collapsible' or its corresponding type declarations.
+src/components/command.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+src/components/command.tsx(3,45): error TS2307: Cannot find module 'cmdk' or its corresponding type declarations.
+src/components/command.tsx(4,24): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/command.tsx(6,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/command.tsx(7,39): error TS2307: Cannot find module '@/components/ui/dialog' or its corresponding type declarations.
+src/components/command.tsx(26,26): error TS2339: Property 'children' does not exist on type 'CommandDialogProps'.
+src/components/context-menu.tsx(2,39): error TS2307: Cannot find module '@radix-ui/react-context-menu' or its corresponding type declarations.
+src/components/context-menu.tsx(3,45): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/context-menu.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/dialog.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+src/components/dialog.tsx(3,19): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/dialog.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/drawer.tsx(2,43): error TS2307: Cannot find module 'vaul' or its corresponding type declarations.
+src/components/drawer.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/dropdown-menu.tsx(2,40): error TS2307: Cannot find module '@radix-ui/react-dropdown-menu' or its corresponding type declarations.
+src/components/dropdown-menu.tsx(3,45): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/dropdown-menu.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/form.tsx(2,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+src/components/form.tsx(3,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+src/components/form.tsx(4,99): error TS2307: Cannot find module 'react-hook-form' or its corresponding type declarations.
+src/components/form.tsx(6,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/form.tsx(7,23): error TS2307: Cannot find module '@/components/ui/label' or its corresponding type declarations.
+src/components/hover-card.tsx(2,37): error TS2307: Cannot find module '@radix-ui/react-hover-card' or its corresponding type declarations.
+src/components/hover-card.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/input-otp.tsx(2,43): error TS2307: Cannot find module 'input-otp' or its corresponding type declarations.
+src/components/input-otp.tsx(3,21): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/input-otp.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/input-otp.tsx(29,44): error TS18046: 'inputOTPContext' is of type 'unknown'.
+src/components/input.tsx(3,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/label.tsx(2,33): error TS2307: Cannot find module '@radix-ui/react-label' or its corresponding type declarations.
+src/components/label.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/label.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/menubar.tsx(2,35): error TS2307: Cannot find module '@radix-ui/react-menubar' or its corresponding type declarations.
+src/components/menubar.tsx(3,45): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/menubar.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/navigation-menu.tsx(2,42): error TS2307: Cannot find module '@radix-ui/react-navigation-menu' or its corresponding type declarations.
+src/components/navigation-menu.tsx(3,21): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/navigation-menu.tsx(4,29): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/navigation-menu.tsx(6,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/pagination.tsx(2,59): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/pagination.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/pagination.tsx(5,45): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/components/pagination.tsx(50,52): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+src/components/pagination.tsx(58,48): error TS2783: 'size' is specified more than once, so this usage will be overwritten.
+src/components/popover.tsx(2,35): error TS2307: Cannot find module '@radix-ui/react-popover' or its corresponding type declarations.
+src/components/popover.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/progress.tsx(2,36): error TS2307: Cannot find module '@radix-ui/react-progress' or its corresponding type declarations.
+src/components/progress.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/radio-group.tsx(2,38): error TS2307: Cannot find module '@radix-ui/react-radio-group' or its corresponding type declarations.
+src/components/radio-group.tsx(3,24): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/radio-group.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/resizable.tsx(1,30): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/resizable.tsx(2,37): error TS2307: Cannot find module 'react-resizable-panels' or its corresponding type declarations.
+src/components/resizable.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/scroll-area.tsx(2,38): error TS2307: Cannot find module '@radix-ui/react-scroll-area' or its corresponding type declarations.
+src/components/scroll-area.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/select.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-select' or its corresponding type declarations.
+src/components/select.tsx(3,47): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/select.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/separator.tsx(2,37): error TS2307: Cannot find module '@radix-ui/react-separator' or its corresponding type declarations.
+src/components/separator.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/sheet.tsx(1,33): error TS2307: Cannot find module '@radix-ui/react-dialog' or its corresponding type declarations.
+src/components/sheet.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/sheet.tsx(3,19): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/sheet.tsx(6,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/sheet.tsx(55,6): error TS2339: Property 'side' does not exist on type 'SheetContentProps'.
+src/components/sheet.tsx(55,22): error TS2339: Property 'className' does not exist on type 'SheetContentProps'.
+src/components/sheet.tsx(55,33): error TS2339: Property 'children' does not exist on type 'SheetContentProps'.
+src/components/sidebar.tsx(2,22): error TS2307: Cannot find module '@radix-ui/react-slot' or its corresponding type declarations.
+src/components/sidebar.tsx(3,35): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/sidebar.tsx(4,27): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/sidebar.tsx(6,29): error TS2307: Cannot find module '@/hooks/use-mobile' or its corresponding type declarations.
+src/components/sidebar.tsx(7,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/sidebar.tsx(8,24): error TS2307: Cannot find module '@/components/ui/button' or its corresponding type declarations.
+src/components/sidebar.tsx(9,23): error TS2307: Cannot find module '@/components/ui/input' or its corresponding type declarations.
+src/components/sidebar.tsx(10,27): error TS2307: Cannot find module '@/components/ui/separator' or its corresponding type declarations.
+src/components/sidebar.tsx(11,37): error TS2307: Cannot find module '@/components/ui/sheet' or its corresponding type declarations.
+src/components/sidebar.tsx(12,26): error TS2307: Cannot find module '@/components/ui/skeleton' or its corresponding type declarations.
+src/components/sidebar.tsx(13,74): error TS2307: Cannot find module '@/components/ui/tooltip' or its corresponding type declarations.
+src/components/sidebar.tsx(230,19): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/components/skeleton.tsx(1,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/slider.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-slider' or its corresponding type declarations.
+src/components/slider.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/sonner.tsx(1,26): error TS2307: Cannot find module 'next-themes' or its corresponding type declarations.
+src/components/sonner.tsx(2,42): error TS2307: Cannot find module 'sonner' or its corresponding type declarations.
+src/components/switch.tsx(2,35): error TS2307: Cannot find module '@radix-ui/react-switch' or its corresponding type declarations.
+src/components/switch.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/table.tsx(3,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/tabs.tsx(2,32): error TS2307: Cannot find module '@radix-ui/react-tabs' or its corresponding type declarations.
+src/components/tabs.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/textarea.tsx(3,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/toast.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-toast' or its corresponding type declarations.
+src/components/toast.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/toast.tsx(4,19): error TS2307: Cannot find module 'lucide-react' or its corresponding type declarations.
+src/components/toast.tsx(6,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/toaster.tsx(1,26): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+src/components/toaster.tsx(2,95): error TS2307: Cannot find module '@/components/ui/toast' or its corresponding type declarations.
+src/components/toaster.tsx(9,31): error TS7031: Binding element 'id' implicitly has an 'any' type.
+src/components/toaster.tsx(9,35): error TS7031: Binding element 'title' implicitly has an 'any' type.
+src/components/toaster.tsx(9,42): error TS7031: Binding element 'description' implicitly has an 'any' type.
+src/components/toaster.tsx(9,55): error TS7031: Binding element 'action' implicitly has an 'any' type.
+src/components/toggle-group.tsx(2,39): error TS2307: Cannot find module '@radix-ui/react-toggle-group' or its corresponding type declarations.
+src/components/toggle-group.tsx(3,35): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/toggle-group.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/toggle-group.tsx(6,32): error TS2307: Cannot find module '@/components/ui/toggle' or its corresponding type declarations.
+src/components/toggle.tsx(2,34): error TS2307: Cannot find module '@radix-ui/react-toggle' or its corresponding type declarations.
+src/components/toggle.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/toggle.tsx(5,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/tooltip.tsx(2,35): error TS2307: Cannot find module '@radix-ui/react-tooltip' or its corresponding type declarations.
+src/components/tooltip.tsx(4,20): error TS2307: Cannot find module '@/lib/utils' or its corresponding type declarations.
+src/components/use-toast.ts(1,33): error TS2307: Cannot find module '@/hooks/use-toast' or its corresponding type declarations.
+ ELIFECYCLE  Command failed with exit code 2.
+ WARN   Local package.json exists, but node_modules missing, did you mean to install?
