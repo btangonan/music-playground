@@ -8,3 +8,7 @@ coverage
 .chroma/
 shared/chroma/
 .turbo/
+
+# UI package build artifacts (WIP - needs deps + types)
+packages/ui/dist/
+packages/ui/.turbo/
