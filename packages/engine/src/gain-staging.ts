@@ -41,8 +41,8 @@ declare global {
 }
 
 function debugLog(...args: any[]) {
-  if (typeof window !== 'undefined' && window.LL_DEBUG_GAIN_STAGING) {
-    console.log('[Gain Staging]', ...args);
+  if (typeof globalThis !== 'undefined' && globalThis.LL_DEBUG_GAIN_STAGING) {
+    globalThis.console.log('[Gain Staging]', ...args);
   }
 }
 
@@ -274,7 +274,7 @@ export function isWithinHeadroom(currentDb: number, target: number): boolean {
  *
  * @example
  * const margin = calculateHeadroomMargin(-2, HeadroomTargets.MASTER);
- * console.log(`${margin > 0 ? 'Safe' : 'Too hot'}: ${Math.abs(margin).toFixed(1)} dB`);
+ * globalThis.console.log(`${margin > 0 ? 'Safe' : 'Too hot'}: ${Math.abs(margin).toFixed(1)} dB`);
  */
 export function calculateHeadroomMargin(currentDb: number, target: number): number {
   return target - currentDb;

@@ -1,0 +1,4 @@
+
+> @music/engine@0.1.0 build /Users/bradleytangonan/Desktop/my apps/music-playground/packages/engine
+> tsc -p tsconfig.json
+

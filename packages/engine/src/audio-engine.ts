@@ -175,7 +175,7 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
 
     // DEBUG: Monitor instrument output RMS every 500ms
     let debugInterval: NodeJS.Timeout | null = null;
-    if (DEV && typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
+    if (DEV && typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
       debugInterval = setInterval(() => {
         const waveform = instrumentAnalyser.getValue() as Float32Array;
         let sum = 0;
@@ -184,7 +184,7 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
           sum += sample * sample;
         }
         const rms = Math.sqrt(sum / waveform.length);
-        console.log('[Keys Instrument] Output RMS:', rms.toFixed(6));
+        globalThis.console.log('[Keys Instrument] Output RMS:', rms.toFixed(6));
       }, 500);
     }
 
@@ -197,8 +197,8 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
         synth.triggerAttackRelease(note, duration, time);
 
         // DEBUG: Log note trigger and check RMS immediately after
-        if (DEV && typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
-          console.log('[Keys Instrument] Note triggered:', note, duration);
+        if (DEV && typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
+          globalThis.console.log('[Keys Instrument] Note triggered:', note, duration);
 
           // Check RMS immediately (after a brief delay to let audio start)
           setTimeout(() => {
@@ -209,7 +209,7 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
               sum += sample * sample;
             }
             const rms = Math.sqrt(sum / waveform.length);
-            console.log('[Keys Instrument] Output RMS after note trigger:', rms.toFixed(6));
+            globalThis.console.log('[Keys Instrument] Output RMS after note trigger:', rms.toFixed(6));
           }, 50); // 50ms delay to let envelope attack
         }
       },
@@ -693,7 +693,7 @@ export function connectChain(instrumentOut: Tone.Gain, effects: EffectConfig[] =
   try { instrumentOut.disconnect(); } catch {}
 
   // DEBUG: Log connection chain
-  console.log('[connectChain] Connecting:', {
+  globalThis.console.log('[connectChain] Connecting:', {
     instrumentOut,
     effectCount: effects.length,
     effectTypes: effects.map(e => e.type)
@@ -702,13 +702,13 @@ export function connectChain(instrumentOut: Tone.Gain, effects: EffectConfig[] =
   let prev: Tone.ToneAudioNode = instrumentOut;
   for (const fx of effects) {
     // do not disconnect fx IO here; simply chain
-    console.log('[connectChain] Connecting to effect:', fx.type, 'input:', fx.input);
+    globalThis.console.log('[connectChain] Connecting to effect:', fx.type, 'input:', fx.input);
     prev.connect(fx.input);
     prev = fx.output;
   }
   prev.connect(Bus.master);
 
-  console.log('[connectChain] Chain complete. Final output connected to Bus.master');
+  globalThis.console.log('[connectChain] Chain complete. Final output connected to Bus.master');
 
   return prev;
 }

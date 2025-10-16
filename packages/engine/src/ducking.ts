@@ -40,8 +40,8 @@ export function makeDucker(
   add.connect(targetGain.gain);
 
   // Debug logging (controlled by LL_DEBUG_DUCK flag)
-  if (typeof window !== 'undefined' && (window as any).LL_DEBUG_DUCK) {
-    console.log('[Ducker] Created:', {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_DUCK) {
+    globalThis.console.log('[Ducker] Created:', {
       ratio,
       attack,
       release,
@@ -65,8 +65,8 @@ export function makeDucker(
       factor.value = -r;
     }
 
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_DUCK) {
-      console.log('[Ducker] Ratio updated:', r);
+    if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_DUCK) {
+      globalThis.console.log('[Ducker] Ratio updated:', r);
     }
   };
 
@@ -78,8 +78,8 @@ export function makeDucker(
     try { multiply.dispose(); } catch {}
     try { add.dispose(); } catch {}
 
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_DUCK) {
-      console.log('[Ducker] Disposed');
+    if (typeof globalThis !== 'undefined' && (globalThis as any).LL_DEBUG_DUCK) {
+      globalThis.console.log('[Ducker] Disposed');
     }
   };
 
