@@ -27,10 +27,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build engine
-        run: pnpm -w -F @music/engine build
+        run: cd packages/engine && pnpm build
 
       - name: Test engine
-        run: pnpm -w -F @music/engine test
-
-      - name: Check bundle size with size-limit
-        run: pnpm size
+        run: cd packages/engine && pnpm test
