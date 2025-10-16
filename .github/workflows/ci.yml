@@ -31,3 +31,9 @@ jobs:
 
       - name: Test engine
         run: cd packages/engine && pnpm test
+
+      - name: Build composer
+        run: pnpm -w -F composer build
+
+      - name: Check bundle size
+        run: pnpm size
