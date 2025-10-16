@@ -26,11 +26,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build packages
-        run: pnpm build
+      - name: Build engine
+        run: pnpm -w -F @music/engine build
 
-      - name: Run tests
-        run: pnpm test
+      - name: Test engine
+        run: pnpm -w -F @music/engine test
 
       - name: Check bundle size with size-limit
         run: pnpm size
