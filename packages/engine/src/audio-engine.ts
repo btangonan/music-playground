@@ -27,6 +27,8 @@ export interface InstrumentConfig {
   triggerOn?: (note: string, time?: number) => void;
   triggerOff?: (note?: string, time?: number) => void;
   play: (note: string, duration?: string, time?: number) => void;
+  _debugAnalyser?: Tone.Analyser;
+  _debugInterval?: NodeJS.Timeout | null;
 }
 
 export interface EffectConfig {
