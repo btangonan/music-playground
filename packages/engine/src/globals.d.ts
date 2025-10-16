@@ -1,9 +1,9 @@
 /**
  * Global type declarations for headless engine
- * Provides minimal browser API types without DOM dependency
+ * ONLY headless-safe types - NO DOM APIs
  */
 
-// Timer functions
+// Timer functions (Node.js compatible)
 declare function setTimeout(handler: TimerHandler, timeout?: number, ...arguments: any[]): NodeJS.Timeout;
 declare function clearTimeout(id: NodeJS.Timeout | number): void;
 declare function setInterval(handler: TimerHandler, timeout?: number, ...arguments: any[]): NodeJS.Timeout;
@@ -11,7 +11,7 @@ declare function clearInterval(id: NodeJS.Timeout | number): void;
 
 type TimerHandler = (...args: any[]) => void;
 
-// Web Audio API types (minimal)
+// Web Audio API types (minimal - NOT DOM-dependent)
 declare class AudioBuffer {
   readonly length: number;
   readonly duration: number;
@@ -22,7 +22,7 @@ declare class AudioBuffer {
   copyToChannel(source: Float32Array, channelNumber: number, bufferOffset?: number): void;
 }
 
-// Console API
+// Console API (universal)
 declare namespace globalThis {
   var console: Console;
   var LL_DEBUG_REVERSE_REVERB: boolean | undefined;
@@ -57,31 +57,6 @@ declare var process: {
 };
 
 declare var __dirname: string;
-
-// Browser API types (minimal for recording functionality)
-declare class MediaRecorder {
-  constructor(stream: any, options?: any);
-  ondataavailable: ((e: any) => void) | null;
-  onstop: (() => void) | null;
-  state: 'inactive' | 'recording' | 'paused';
-  start(): void;
-  stop(): void;
-}
-
-declare class Blob {
-  constructor(parts: any[], options?: any);
-  size: number;
-  arrayBuffer(): Promise<ArrayBuffer>;
-}
-
-declare namespace URL {
-  function createObjectURL(blob: Blob): string;
-  function revokeObjectURL(url: string): void;
-}
-
-declare var document: {
-  createElement(tag: string): any;
-}
 
 // Node.js module declarations (for tests)
 declare module 'node:fs' {

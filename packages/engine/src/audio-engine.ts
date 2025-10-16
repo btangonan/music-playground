@@ -59,33 +59,6 @@ export const Bus = {
 const dest = new Tone.Gain(1).connect(Bus.master);
 Bus.recordTap.connect(dest);
 
-// Recording
-let mediaRecorder: MediaRecorder | null = null;
-let chunks: Blob[] = [];
-
-export function startRec() {
-  if (mediaRecorder?.state === 'recording') return;
-  const stream = (Tone.getContext() as any).createMediaStreamDestination();
-  Bus.master.connect(stream);
-  mediaRecorder = new MediaRecorder(stream.stream);
-  mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
-  mediaRecorder.onstop = () => {
-    const blob = new Blob(chunks, { type: 'audio/wav' });
-    chunks = [];
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'harmonic-sketch.wav';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-  mediaRecorder.start();
-}
-
-export function stopRec() {
-  mediaRecorder?.stop();
-}
-
 // ---- Trigger helpers -------------------------------------------------------
 export function trigger(kind: 'keys'|'bass'|'drums'|'pad_gate', synth: any, payload: string, time?: any) {
   if (kind === 'drums') {
