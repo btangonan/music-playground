@@ -167,17 +167,20 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
     }).connect(out);
 
     // DEBUG: Add analyser to instrument output to verify audio generation
-    const instrumentAnalyser = new Tone.Analyser('waveform', 2048);
-    out.connect(instrumentAnalyser);
+    const DEV = process.env.NODE_ENV !== 'production';
+    const instrumentAnalyser = DEV ? new Tone.Analyser('waveform', 2048) : undefined;
+    if (instrumentAnalyser) {
+      out.connect(instrumentAnalyser);
+    }
 
     // DEBUG: Monitor instrument output RMS every 500ms
     let debugInterval: NodeJS.Timeout | null = null;
-    if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
+    if (DEV && typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
       debugInterval = setInterval(() => {
-        const waveform = instrumentAnalyser.getValue();
+        const waveform = instrumentAnalyser.getValue() as Float32Array;
         let sum = 0;
         for (let i = 0; i < waveform.length; i++) {
-          const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+          const sample = waveform[i] as number;
           sum += sample * sample;
         }
         const rms = Math.sqrt(sum / waveform.length);
@@ -194,15 +197,15 @@ export function makeInstrument(kind: 'keys' | 'bass' | 'drums' | 'pad_gate', opt
         synth.triggerAttackRelease(note, duration, time);
 
         // DEBUG: Log note trigger and check RMS immediately after
-        if (typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB) {
+        if (DEV && typeof window !== 'undefined' && (window as any).LL_DEBUG_REVERSE_REVERB && instrumentAnalyser) {
           console.log('[Keys Instrument] Note triggered:', note, duration);
 
           // Check RMS immediately (after a brief delay to let audio start)
           setTimeout(() => {
-            const waveform = instrumentAnalyser.getValue();
+            const waveform = instrumentAnalyser.getValue() as Float32Array;
             let sum = 0;
             for (let i = 0; i < waveform.length; i++) {
-              const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+              const sample = waveform[i] as number;
               sum += sample * sample;
             }
             const rms = Math.sqrt(sum / waveform.length);
@@ -420,7 +423,8 @@ export async function makeEffect(type: string): Promise<EffectConfig> {
       logIRLoad(defaultIR.id, 'loading');
 
       const convolver = new Tone.Convolver(defaultIR.url);
-      await convolver.ready;
+      // Tone.js v14: Convolver.ready is a Promise (TypeScript types incomplete)
+      await (convolver as any).ready;
 
       logIRLoad(defaultIR.id, 'loaded');
 
@@ -725,7 +729,10 @@ export const Engine = {
   play: () => { Tone.Transport.start(); },
   stop: () => {
     Tone.Transport.stop();
-    window.dispatchEvent(new CustomEvent('playhead', { detail:{ id:null, index:-1 }}));
+    // Safe DOM event dispatch for browser contexts
+    if (typeof globalThis !== 'undefined' && (globalThis as any).CustomEvent && (globalThis as any).dispatchEvent) {
+      (globalThis as any).dispatchEvent(new (globalThis as any).CustomEvent('playhead', { detail: { id: null, index: -1 } }));
+    }
   },
   getContext: () => Tone.getContext(),
   getTransport: () => Tone.Transport

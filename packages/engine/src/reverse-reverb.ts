@@ -247,21 +247,21 @@ export function makeReverseReverb(
       if (!isEnabled || isRecording) return;
 
       // Get waveform data from analyser
-      const waveform = analyser.getValue();
+      const waveform = analyser.getValue() as Float32Array;
 
       // Calculate RMS (root mean square) amplitude
       let sum = 0;
       for (let i = 0; i < waveform.length; i++) {
-        const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+        const sample = waveform[i] as number;
         sum += sample * sample;
       }
       const rms = Math.sqrt(sum / waveform.length);
 
       // DEBUG: Calculate RMS from input analyser for comparison
-      const inputWaveform = inputAnalyser.getValue();
+      const inputWaveform = inputAnalyser.getValue() as Float32Array;
       let inputSum = 0;
       for (let i = 0; i < inputWaveform.length; i++) {
-        const sample = typeof inputWaveform[i] === 'number' ? inputWaveform[i] : 0;
+        const sample = inputWaveform[i] as number;
         inputSum += sample * sample;
       }
       const inputRMS = Math.sqrt(inputSum / inputWaveform.length);
@@ -362,10 +362,10 @@ export function makeReverseReverb(
    * Get current RMS level from analyser for diagnostics
    */
   function getRMS(): number {
-    const waveform = analyser.getValue();
+    const waveform = analyser.getValue() as Float32Array;
     let sum = 0;
     for (let i = 0; i < waveform.length; i++) {
-      const sample = typeof waveform[i] === 'number' ? waveform[i] : 0;
+      const sample = waveform[i] as number;
       sum += sample * sample;
     }
     return Math.sqrt(sum / waveform.length);
