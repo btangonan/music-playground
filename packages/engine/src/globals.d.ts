@@ -4,10 +4,10 @@
  */
 
 // Timer functions
-declare function setTimeout(handler: TimerHandler, timeout?: number, ...arguments: any[]): number;
-declare function clearTimeout(id: number): void;
-declare function setInterval(handler: TimerHandler, timeout?: number, ...arguments: any[]): number;
-declare function clearInterval(id: number): void;
+declare function setTimeout(handler: TimerHandler, timeout?: number, ...arguments: any[]): NodeJS.Timeout;
+declare function clearTimeout(id: NodeJS.Timeout | number): void;
+declare function setInterval(handler: TimerHandler, timeout?: number, ...arguments: any[]): NodeJS.Timeout;
+declare function clearInterval(id: NodeJS.Timeout | number): void;
 
 type TimerHandler = (...args: any[]) => void;
 
@@ -63,6 +63,7 @@ declare class MediaRecorder {
   constructor(stream: any, options?: any);
   ondataavailable: ((e: any) => void) | null;
   onstop: (() => void) | null;
+  state: 'inactive' | 'recording' | 'paused';
   start(): void;
   stop(): void;
 }
@@ -80,4 +81,16 @@ declare namespace URL {
 
 declare var document: {
   createElement(tag: string): any;
+}
+
+// Node.js module declarations (for tests)
+declare module 'node:fs' {
+  export function readFileSync(path: string, encoding: string): string;
+  export function existsSync(path: string): boolean;
+}
+
+declare module 'node:path' {
+  export function join(...paths: string[]): string;
+  export function resolve(...paths: string[]): string;
+  export function dirname(path: string): string;
 }
