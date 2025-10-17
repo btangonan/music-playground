@@ -19,12 +19,10 @@ interface IconSequencerWithDensityProps {
   onBarChordAssign: (barIndex: number, chord: Chord) => void;
   currentStep: number; // continuous 0-16 (quarter notes)
   isPlaying: boolean;
-  placements?: IconPlacement[]; // External placements (e.g., from MIDI import)
   onPlacementsChange?: (placements: IconPlacement[]) => void;
   onPreviewNote?: (soundId: string, pitch: number) => void;
   resolution: '1/4' | '1/8' | '1/16';
   quantizeBar: (bar: number) => number;
-  pitchRange?: { min: number; max: number } | null; // Dynamic pitch range from loaded MIDI
 }
 
 const COLUMN_WIDTH = 48; // quarter
@@ -52,31 +50,10 @@ const BASE_SCALE = 0.8;
 const DEBUG = true;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
-  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, pitchRange } = props;
-
-  // Dynamic grid sizing based on pitch range
-  const maxPitch = pitchRange?.max ?? 83; // Default to B5
-  const minPitch = pitchRange?.min ?? 48; // Default to C3
-  const TOTAL_SEMITONES_DYNAMIC = pitchRange ? (maxPitch - minPitch + 1) : TOTAL_SEMITONES;
+  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
 
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
-  const isSyncingFromExternal = useRef(false);
-
-  // Sync external placements (e.g., from MIDI import) to internal state
-  useEffect(() => {
-    if (externalPlacements) {
-      isSyncingFromExternal.current = true;
-      setPlacements(externalPlacements);
-    }
-  }, [externalPlacements]);
-
-  // Notify parent of placement changes (but skip during external sync to avoid circular updates)
-  useEffect(() => {
-    if (!isSyncingFromExternal.current) {
-      onPlacementsChange?.(placements);
-    }
-    isSyncingFromExternal.current = false;
-  }, [placements, onPlacementsChange]);
+  useEffect(() => { onPlacementsChange?.(placements); }, [placements, onPlacementsChange]);
 
   // UPDATED: store snappedBar for absolute overlay
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number; xWithinCol: number; snappedBar: number } | null>(null);
@@ -126,7 +103,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     let y = e.clientY - rect.top - WRAPPER_PADDING;
     // Clamp to grid bounds
     const maxX = COLUMN_WIDTH * TIME_STEPS;
-    const maxY = ROW_HEIGHT * TOTAL_SEMITONES_DYNAMIC;
+    const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
     x = Math.min(Math.max(x, 0), maxX);
     y = Math.min(Math.max(y, 0), maxY);
     const col = Math.floor(x / COLUMN_WIDTH);
@@ -156,7 +133,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
     const safeSnappedBar = finalSnappedBar;
 
-    if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES_DYNAMIC) {
+    if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
       setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: safeSnappedBar });
     }
 
@@ -186,7 +163,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     let y = e.clientY - rect.top - WRAPPER_PADDING;
     // Clamp to grid bounds
     const maxX = COLUMN_WIDTH * TIME_STEPS;
-    const maxY = ROW_HEIGHT * TOTAL_SEMITONES_DYNAMIC;
+    const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
     x = Math.min(Math.max(x, 0), maxX);
     y = Math.min(Math.max(y, 0), maxY);
     const col = Math.floor(x / COLUMN_WIDTH);
@@ -201,7 +178,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const maxValidBar = 63;
     const finalSnappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
 
-    const pitch = maxPitch - row;
+    const pitch = 83 - row;
 
     if (DEBUG) {
       console.log('🎯 DROP:', {
@@ -248,8 +225,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const renderGrid = () => {
     const rows = [];
-    for (let row = 0; row < TOTAL_SEMITONES_DYNAMIC; row++) {
-      const midi = maxPitch - row;
+    for (let row = 0; row < TOTAL_SEMITONES; row++) {
+      const midi = 83 - row;
       const pc = midiToPitchClass(midi);
       let zoneBg = '#FFFFFF';
       if (isDragging) { if (row < 12) zoneBg = 'rgba(224, 242, 254, 0.3)'; else if (row >= 24) zoneBg = 'rgba(255, 251, 235, 0.3)'; }
@@ -304,7 +281,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const sound = SOUND_ICONS.find(s => s.id === p.soundId);
       if (!sound) return null;
       const IconComponent = sound.icon;
-      const row = maxPitch - p.pitch;
+      const row = 83 - p.pitch;
       const isDragged = draggedPlacementIndex === index;
 
       // Icons render CENTERED on the target sixteenth cell
@@ -408,67 +385,26 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div>
-      {/* NEW: vertical scroll wrapper */}
+      {/* Outer drop zone wrapper - extended hit zone with padding buffer */}
       <div
+        ref={outerWrapperRef}
+        className="relative flex items-center justify-center"
         style={{
-          maxHeight: '450px',
-          overflowY: 'auto',
-          overflowX: 'hidden'
+          width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`,
+          height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px`
         }}
+        onDragOver={!assignmentMode ? handleDragOver : undefined}
+        onDragLeave={!assignmentMode ? handleDragLeave : undefined}
+        onDrop={!assignmentMode ? handleDrop : undefined}
+        onDragEnd={!assignmentMode ? handleDragEnd : undefined}
       >
-        {/* Outer drop zone wrapper - unchanged ref & padding math */}
-        <div
-          ref={outerWrapperRef}
-          className="relative flex items-center justify-center"
-          style={{
-            width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`,
-            height: `${ROW_HEIGHT * TOTAL_SEMITONES_DYNAMIC + WRAPPER_PADDING * 2}px`
-          }}
-          onDragOver={!assignmentMode ? handleDragOver : undefined}
-          onDragLeave={!assignmentMode ? handleDragLeave : undefined}
-          onDrop={!assignmentMode ? handleDrop : undefined}
-          onDragEnd={!assignmentMode ? handleDragEnd : undefined}
-        >
-          {/* Invisible TOP spacer so top-row icons (overhang ~20px) are scrollable */}
-          <div aria-hidden style={{ position: 'absolute', top: 0, left: 0, right: 0, height: `${ICON_BOX / 2}px` }} />
-
-          {/* Rounded grid container: stop clipping by using overflow: visible */}
-          <div
-            ref={sequencerRef}
-            className="relative border-2 border-black rounded-xl"
-            style={{
-              width: `${COLUMN_WIDTH * TIME_STEPS}px`,
-              height: `${ROW_HEIGHT * TOTAL_SEMITONES_DYNAMIC}px`,
-              userSelect: 'none',
-              flexShrink: 0,
-              overflow: 'visible'
-            }}
-          >
-            {renderGrid()}
-            {renderHoverOverlay()}
-            {!assignmentMode && renderPlacements()}
-            {isPlaying && (
-              <div
-                style={{
-                  position: 'absolute',
-                  left: `${currentStep * COLUMN_WIDTH}px`,
-                  top: 0,
-                  width: '2px',
-                  height: '100%',
-                  backgroundColor: '#FFD11A',
-                  boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)',
-                  pointerEvents: 'none',
-                  zIndex: 150
-                }}
-              />
-            )}
-          </div>
-
-          {/* Invisible BOTTOM spacer so bottom-row overhang (~20px) extends scrollHeight */}
-          <div aria-hidden style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: `${ICON_BOX / 2}px` }} />
+        <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }}>
+          {renderGrid()}
+          {renderHoverOverlay()}
+          {!assignmentMode && renderPlacements()}
+          {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#FFD11A', boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)', pointerEvents: 'none', zIndex: 150 }} />)}
         </div>
       </div>
-
       {renderDragGhost()}
     </div>
   );
