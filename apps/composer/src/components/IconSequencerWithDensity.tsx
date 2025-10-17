@@ -20,6 +20,7 @@ interface IconSequencerWithDensityProps {
   currentStep: number; // Now a continuous float 0-16
   isPlaying: boolean;
   onPlacementsChange?: (placements: IconPlacement[]) => void;
+  onPreviewNote?: (soundId: string, pitch: number) => void;
 }
 
 const COLUMN_WIDTH = 48;
@@ -44,7 +45,8 @@ export default function IconSequencerWithDensity({
   onBarChordAssign,
   currentStep,
   isPlaying,
-  onPlacementsChange
+  onPlacementsChange,
+  onPreviewNote
 }: IconSequencerWithDensityProps) {
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
 
@@ -61,18 +63,18 @@ export default function IconSequencerWithDensity({
 
   const handlePlacementDragStart = (e: React.DragEvent, index: number) => {
     e.stopPropagation();
-    
+
     setDraggedPlacementIndex(index);
     setIsDragging(true);
-    
+
     const placement = placements[index];
     setDragGhost({
       x: e.clientX,
       y: e.clientY,
       soundId: placement.soundId
     });
-    
-    e.dataTransfer.effectAllowed = 'move';
+
+    e.dataTransfer.effectAllowed = 'copyMove';
     e.dataTransfer.setData('placementIndex', index.toString());
     e.dataTransfer.setData('soundId', placement.soundId);
     
@@ -152,17 +154,17 @@ export default function IconSequencerWithDensity({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!sequencerRef.current) return;
-    
+
     const rect = sequencerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
+
     // Calculate cell position at drop point
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
-    
+
     if (col < 0 || col >= TIME_STEPS || row < 0 || row >= TOTAL_SEMITONES) {
       // Out of bounds
       setHoveredCell(null);
@@ -171,28 +173,50 @@ export default function IconSequencerWithDensity({
       setDraggedPlacementIndex(null);
       return;
     }
-    
+
     // Convert row to pitch (inverted: row 0 = B5, row 35 = C3)
     const pitch = 83 - row; // B5 (83) at top, C3 (48) at bottom
-    
+
+    // Detect Option key (Alt on Windows, Option on Mac)
+    const isDuplicating = e.metaKey || e.altKey;
+
     // Check if we're moving an existing placement
     const placementIndexStr = e.dataTransfer.getData('placementIndex');
     if (placementIndexStr) {
-      // Moving existing placement
+      // Moving or duplicating existing placement
       const placementIndex = parseInt(placementIndexStr);
-      const updatedPlacements = [...placements];
-      updatedPlacements[placementIndex] = {
-        ...updatedPlacements[placementIndex],
-        bar: col,
-        pitch,
-      };
-      setPlacements(updatedPlacements);
+
+      if (isDuplicating) {
+        // Duplicate: create new placement at new position
+        const originalPlacement = placements[placementIndex];
+        const newPlacement: IconPlacement = {
+          ...originalPlacement,
+          bar: col,
+          pitch,
+        };
+        setPlacements([...placements, newPlacement]);
+
+        // Play preview of the duplicated note
+        onPreviewNote?.(newPlacement.soundId, pitch);
+      } else {
+        // Move: update existing placement position
+        const updatedPlacements = [...placements];
+        updatedPlacements[placementIndex] = {
+          ...updatedPlacements[placementIndex],
+          bar: col,
+          pitch,
+        };
+        setPlacements(updatedPlacements);
+
+        // Play preview of the moved note
+        onPreviewNote?.(updatedPlacements[placementIndex].soundId, pitch);
+      }
       setDraggedPlacementIndex(null);
     } else {
       // Adding new placement from gallery
       const soundId = e.dataTransfer.getData('soundId');
       if (!soundId) return;
-      
+
       const newPlacement: IconPlacement = {
         soundId,
         bar: col,
@@ -200,8 +224,11 @@ export default function IconSequencerWithDensity({
         velocity: 80,
       };
       setPlacements([...placements, newPlacement]);
+
+      // Play preview of the note that will sound
+      onPreviewNote?.(soundId, pitch);
     }
-    
+
     setHoveredCell(null);
     setIsDragging(false);
     setDragGhost(null);

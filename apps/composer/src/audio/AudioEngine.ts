@@ -66,8 +66,14 @@ export class AudioEngine {
     }
 
     try {
-      // Trigger note with velocity
-      instrument.triggerAttackRelease(note, '8n', time, velocity)
+      // NoiseSynth has a different API - it doesn't accept note parameter
+      if (instrument instanceof Tone.NoiseSynth) {
+        // NoiseSynth.triggerAttackRelease(duration, time, velocity)
+        instrument.triggerAttackRelease('8n', time, velocity)
+      } else {
+        // All other synths: triggerAttackRelease(note, duration, time, velocity)
+        instrument.triggerAttackRelease(note, '8n', time, velocity)
+      }
       return true
     } catch (err) {
       console.error(`Failed to schedule note for ${soundId}:`, err)

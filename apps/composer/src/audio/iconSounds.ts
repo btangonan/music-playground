@@ -143,8 +143,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
       synthType: 'MonoSynth',
       options: {
         oscillator: { type: 'sine' },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.8 },
-        filterEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.5 }
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.8 }
       }
     }
   },

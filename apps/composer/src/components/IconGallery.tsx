@@ -5,9 +5,10 @@ interface IconGalleryProps {
   onSelectSound: (soundId: string) => void;
   onDragStart?: (soundId: string) => void;
   onDragEnd?: () => void;
+  onPreviewSound?: (soundId: string) => void;
 }
 
-export default function IconGallery({ selectedSound, onSelectSound, onDragStart, onDragEnd }: IconGalleryProps) {
+export default function IconGallery({ selectedSound, onSelectSound, onDragStart, onDragEnd, onPreviewSound }: IconGalleryProps) {
   return (
     <div 
       className="flex items-center justify-center"
@@ -24,7 +25,10 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
             <div
               key={sound.id}
               draggable
-              onClick={() => onSelectSound(sound.id)}
+              onClick={() => {
+                onSelectSound(sound.id);
+                onPreviewSound?.(sound.id);
+              }}
               className={`
                 flex-shrink-0 cursor-pointer flex items-center justify-center
                 transition-all duration-150

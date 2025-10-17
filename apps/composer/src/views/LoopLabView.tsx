@@ -132,6 +132,8 @@ export default function LoopLabView() {
         setIsPlaying(true);
       } else {
         Tone.Transport.pause();
+        Tone.Transport.position = 0; // Reset to beginning
+        setCurrentStep(0); // Reset visual playhead
         setIsPlaying(false);
       }
     }
@@ -214,6 +216,47 @@ export default function LoopLabView() {
     setAssignmentMode(null);
   };
 
+  const handlePreviewSound = async (soundId: string) => {
+    // Initialize audio engine if needed
+    if (!audioEngineRef.current) {
+      try {
+        const engine = new AudioEngine();
+        await engine.start();
+        audioEngineRef.current = engine;
+        engine.setBPM(bpm);
+      } catch (err) {
+        console.error('Failed to initialize audio for preview:', err);
+        return;
+      }
+    }
+
+    // Play preview note (C4 - middle C)
+    const engineSoundId = mapSoundId(soundId);
+    const engine = audioEngineRef.current;
+    engine.scheduleNote(engineSoundId, 'C4', '+0', 0.7);
+  };
+
+  const handlePreviewNote = async (soundId: string, pitch: number) => {
+    // Initialize audio engine if needed
+    if (!audioEngineRef.current) {
+      try {
+        const engine = new AudioEngine();
+        await engine.start();
+        audioEngineRef.current = engine;
+        engine.setBPM(bpm);
+      } catch (err) {
+        console.error('Failed to initialize audio for preview:', err);
+        return;
+      }
+    }
+
+    // Play preview note with actual pitch
+    const engineSoundId = mapSoundId(soundId);
+    const note = midiToNoteName(pitch);
+    const engine = audioEngineRef.current;
+    engine.scheduleNote(engineSoundId, note, '+0', 0.7);
+  };
+
   // BPM synchronization
   useEffect(() => {
     if (audioEngineRef.current) {
@@ -239,14 +282,15 @@ export default function LoopLabView() {
       const note = midiToNoteName(placement.pitch);
 
       // Convert step position (0-15) to bar:quarter:sixteenth format
-      // Grid has 4 bars, each bar has 4 steps (sixteenth notes)
+      // Grid has 16 steps across 4 bars (4 steps per bar)
       // placement.bar is 0-15, representing position across 4 bars
       const bar = Math.floor(placement.bar / 4); // Which bar (0-3)
-      const sixteenth = placement.bar % 4; // Which sixteenth within that bar (0-3)
+      const stepInBar = placement.bar % 4; // Which step within that bar (0-3)
 
       // Tone.js time format: "bar:quarter:sixteenth"
-      // In 4/4 time, each quarter note has 4 sixteenth notes
-      const time = `${bar}:0:${sixteenth}`;
+      // Each bar has 4 quarter notes, each quarter has 4 sixteenths
+      // Since we have 4 steps per bar, each step is 1 quarter note
+      const time = `${bar}:${stepInBar}:0`;
 
       // Schedule note with Tone.js Transport
       const eventId = Tone.Transport.schedule((scheduleTime) => {
@@ -297,6 +341,24 @@ export default function LoopLabView() {
       cancelAnimationFrame(animationFrame);
     };
   }, [isPlaying, bpm]);
+
+  // Spacebar shortcut for play/pause
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      // Only trigger if not typing in an input field
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      if (event.code === 'Space') {
+        event.preventDefault();
+        handlePlayPause();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isPlaying]); // Include isPlaying to ensure handlePlayPause closure is current
 
   // Cleanup on component unmount
   useEffect(() => {
@@ -393,6 +455,7 @@ export default function LoopLabView() {
               onSelectSound={handleSelectSound}
               onDragStart={setDraggingSound}
               onDragEnd={() => setDraggingSound(null)}
+              onPreviewSound={handlePreviewSound}
             />
           </div>
 
@@ -413,6 +476,7 @@ export default function LoopLabView() {
               currentStep={currentStep}
               isPlaying={isPlaying}
               onPlacementsChange={setPlacements}
+              onPreviewNote={handlePreviewNote}
             />
 
             {/* Step Numbers - 10px */}
