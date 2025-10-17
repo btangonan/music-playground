@@ -510,8 +510,8 @@ export default function IconSequencerWithDensity({
 
   // Render placed icons
   const renderPlacements = () => {
-    // Calculate icon width based on resolution to prevent overlaps
-    const { iconWidth, iconVisualSize } = getIconDimensions(resolution);
+    // Calculate icon visual size for rendering
+    const { iconVisualSize } = getIconDimensions(resolution);
 
     return placements.map((placement, index) => {
       const sound = SOUND_ICONS.find(s => s.id === placement.soundId);
@@ -531,7 +531,6 @@ export default function IconSequencerWithDensity({
       // Center icons at a fixed pixel position regardless of resolution
       // Target: icon center at leftPosition + SIXTEENTH_WIDTH/2
       const targetCenter = leftPosition + SIXTEENTH_WIDTH / 2;
-      const centeredLeft = targetCenter - iconWidth / 2;
 
       // Check if playhead is hitting this icon
       // Playhead position is in continuous steps (0-16 quarter notes)
@@ -567,7 +566,8 @@ export default function IconSequencerWithDensity({
             position: 'absolute',
             left: `${targetCenter}px`,  // Center X position in pixels
             top: `${row * ROW_HEIGHT}px`,
-            transform: 'translateX(-50%)',  // Anchor by center
+            transform: 'translateX(-50%) translateZ(0)',  // Anchor by center + GPU acceleration
+            willChange: 'transform, left',  // Performance hint for frequent position changes
             height: `${ROW_HEIGHT}px`,
             cursor: isDragged ? 'grabbing' : 'grab',
             opacity: isDragged ? 0 : 1,
@@ -587,6 +587,7 @@ export default function IconSequencerWithDensity({
             style={{
               width: `${iconVisualSize}px`,
               height: `${iconVisualSize}px`,
+              transformOrigin: 'center',  // Explicit transform origin for predictable scaling
               pointerEvents: 'none'
             }}
           >
