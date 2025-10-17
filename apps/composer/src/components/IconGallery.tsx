@@ -44,23 +44,17 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
                 e.dataTransfer.setData('soundId', sound.id);
                 onSelectSound(sound.id);
                 onDragStart?.(sound.id);
-                
-                // Create a completely transparent DOM element for drag image
-                const emptyDiv = document.createElement('div');
-                emptyDiv.style.width = '1px';
-                emptyDiv.style.height = '1px';
-                emptyDiv.style.position = 'absolute';
-                emptyDiv.style.top = '-9999px';
-                emptyDiv.style.opacity = '0';
-                document.body.appendChild(emptyDiv);
-                e.dataTransfer.setDragImage(emptyDiv, 0, 0);
-                
-                // Clean up after a short delay
-                setTimeout(() => {
-                  if (document.body.contains(emptyDiv)) {
-                    document.body.removeChild(emptyDiv);
-                  }
-                }, 0);
+
+                // Centered, invisible drag image (40x40) to match sequencer ghost and avoid OS glyphs
+                const dragImg = document.createElement('div');
+                dragImg.style.width = '40px';
+                dragImg.style.height = '40px';
+                dragImg.style.position = 'absolute';
+                dragImg.style.top = '-9999px';
+                dragImg.style.opacity = '0';
+                document.body.appendChild(dragImg);
+                e.dataTransfer.setDragImage(dragImg, 20, 20);
+                setTimeout(() => { if (document.body.contains(dragImg)) document.body.removeChild(dragImg); }, 0);
               }}
               onDragEnd={() => {
                 onDragEnd?.();
