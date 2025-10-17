@@ -1,5 +1,7 @@
-import { Play, Save, Settings, Square } from 'lucide-react';
+import { Play, Save, Settings, Square, Upload } from 'lucide-react';
+import { useRef, useState } from 'react';
 import KeySelector from './KeySelector';
+import MidiUploader from './MidiUploader';
 
 interface TopBarProps {
   isPlaying: boolean;
@@ -11,6 +13,10 @@ interface TopBarProps {
   onKeyChange: (key: string) => void;
   resolution: '1/4' | '1/8' | '1/16';
   onResolutionChange: (resolution: '1/4' | '1/8' | '1/16') => void;
+  midiMetadata: { name: string; bpm: number; iconCount: number; noteCount: number } | null;
+  onMidiUpload: (placements: any[], metadata: any) => void;
+  onShowMidiModal: () => void;
+  ensureAudioEngine: () => Promise<any>;
 }
 
 export default function TopBar({
@@ -22,8 +28,24 @@ export default function TopBar({
   selectedKey,
   onKeyChange,
   resolution,
-  onResolutionChange
+  onResolutionChange,
+  midiMetadata,
+  onMidiUpload,
+  onShowMidiModal,
+  ensureAudioEngine
 }: TopBarProps) {
+  const midiUploaderRef = useRef<{ triggerUpload: () => void }>(null);
+
+  const handleImportClick = () => {
+    if (midiMetadata) {
+      // If MIDI already loaded, show modal
+      onShowMidiModal();
+    } else {
+      // Trigger file picker
+      const fileInput = document.querySelector('input[type="file"][accept*="midi"]') as HTMLInputElement;
+      fileInput?.click();
+    }
+  };
   return (
     <div 
       className="bg-white border-2 border-black rounded-2xl p-4 mb-4"
@@ -33,7 +55,7 @@ export default function TopBar({
     >
       <div className="flex items-center justify-between h-full">
         {/* Left Side - Action Buttons */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-5">
           <button
             onClick={onPlayPause}
             className="
@@ -66,10 +88,44 @@ export default function TopBar({
             <Save className="w-4 h-4" />
             <span>Save to Pad</span>
           </button>
+
+          {/* Import MIDI Button */}
+          <div className="relative">
+            <button
+              onClick={handleImportClick}
+              className="
+                bg-white border border-[rgba(0,0,0,0.1)] px-3 py-2 rounded-xl
+                flex items-center gap-2
+                bounce-transition hover:scale-105 active:scale-98
+                hover:bg-[rgba(0,0,0,0.05)]
+              "
+              style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px' }}
+            >
+              <Upload className="w-4 h-4" />
+              <span>Import MIDI</span>
+            </button>
+
+            {/* Green badge when MIDI loaded */}
+            {midiMetadata && (
+              <div
+                className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"
+                title="MIDI file loaded - click to view details"
+              />
+            )}
+
+            {/* Hidden MidiUploader */}
+            <div style={{ display: 'none' }}>
+              <MidiUploader
+                compact={true}
+                ensureAudioEngine={ensureAudioEngine}
+                onPlacements={onMidiUpload}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Right Side - Key, BPM & Settings */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {/* Key Selector */}
           <KeySelector
             selectedKey={selectedKey}
@@ -117,15 +173,14 @@ export default function TopBar({
 
           <button
             className="
-              bg-white border border-[rgba(0,0,0,0.1)] px-3 py-2 rounded-xl
-              flex items-center gap-2
+              bg-white border border-[rgba(0,0,0,0.1)] p-2.5 rounded-xl
+              flex items-center justify-center
               bounce-transition hover:scale-105 active:scale-98
               hover:bg-[rgba(0,0,0,0.05)]
             "
-            style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px' }}
+            title="Settings"
           >
             <Settings className="w-4 h-4" />
-            <span>Settings</span>
           </button>
         </div>
       </div>

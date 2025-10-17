@@ -6,7 +6,7 @@ import IconGallery from '../components/IconGallery';
 import IconSequencerWithDensity from '../components/IconSequencerWithDensity';
 import StepNumbers from '../components/StepNumbers';
 import ChordLabels from '../components/ChordLabels';
-import MidiUploader from '../components/MidiUploader';
+import MidiInfoModal from '../components/MidiInfoModal';
 import { type Chord } from '../components/chordData';
 import { AudioEngine } from '../audio/AudioEngine';
 import { mapSoundId } from '../audio/soundIdMapper';
@@ -48,8 +48,14 @@ export default function LoopLabView() {
   // Grid resolution state
   const [resolution, setResolution] = useState<GridResolution>('1/4');
 
-  // MIDI upload state - store BPM for sync button
-  const [midiMetadata, setMidiMetadata] = useState<{ name: string; bpm: number } | null>(null);
+  // MIDI upload state - store metadata for modal
+  const [midiMetadata, setMidiMetadata] = useState<{
+    name: string;
+    bpm: number;
+    iconCount: number;
+    noteCount: number;
+  } | null>(null);
+  const [showMidiModal, setShowMidiModal] = useState(false);
 
   // Pitch range for dynamic grid sizing
   const [pitchRange, setPitchRange] = useState<{ min: number; max: number } | null>(null);
@@ -303,8 +309,16 @@ export default function LoopLabView() {
     return audioEngineRef.current;
   };
 
-  const handlePlacementsLoaded = (placements: any[]) => {
+  const handlePlacementsLoaded = (placements: any[], metadata: { name: string; bpm: number; noteCount: number }) => {
     setPlacements(placements);
+
+    // Store enriched metadata
+    setMidiMetadata({
+      name: metadata.name,
+      bpm: metadata.bpm,
+      iconCount: placements.length,
+      noteCount: metadata.noteCount
+    });
 
     // Calculate pitch range from placements
     if (placements.length > 0) {
@@ -319,14 +333,11 @@ export default function LoopLabView() {
     showToast(`MIDI loaded: ${placements.length} icons added to grid`, 'success');
   };
 
-  const handleMetadataLoaded = (metadata: { name: string; bpm: number }) => {
-    setMidiMetadata(metadata);
-  };
-
   const handleSyncBpmToMidi = () => {
     if (midiMetadata) {
       setBpm(midiMetadata.bpm);
-      showToast(`BPM synced to MIDI: ${midiMetadata.bpm}`, 'success');
+      showToast(`BPM synced to ${midiMetadata.bpm}`, 'success');
+      setShowMidiModal(false); // Close modal after sync
     }
   };
 
@@ -504,27 +515,11 @@ export default function LoopLabView() {
           onKeyChange={setSelectedKey}
           resolution={resolution}
           onResolutionChange={setResolution}
+          midiMetadata={midiMetadata}
+          onMidiUpload={handlePlacementsLoaded}
+          onShowMidiModal={() => setShowMidiModal(true)}
+          ensureAudioEngine={ensureAudioEngine}
         />
-
-        {/* MIDI Upload Section */}
-        <div className="my-4 p-3 bg-white border-2 border-black rounded-xl">
-          <div className="flex items-center justify-between gap-3">
-            <MidiUploader
-              ensureAudioEngine={ensureAudioEngine}
-              onPlacements={handlePlacementsLoaded}
-              onMetadata={handleMetadataLoaded}
-            />
-            {midiMetadata && (
-              <button
-                className="px-3 py-2 border rounded bg-blue-50 hover:bg-blue-100 text-sm"
-                onClick={handleSyncBpmToMidi}
-                title={`MIDI BPM: ${midiMetadata.bpm}`}
-              >
-                Sync to MIDI BPM ({midiMetadata.bpm})
-              </button>
-            )}
-          </div>
-        </div>
 
         {/* Main Interface Container - 450px total */}
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
@@ -586,6 +581,17 @@ export default function LoopLabView() {
             ? `Click a bar to assign chord "${assignmentMode}"`
             : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
         </p>
+
+        {/* MIDI Info Modal */}
+        {midiMetadata && (
+          <MidiInfoModal
+            isOpen={showMidiModal}
+            onClose={() => setShowMidiModal(false)}
+            metadata={midiMetadata}
+            currentBpm={bpm}
+            onSyncBpm={handleSyncBpmToMidi}
+          />
+        )}
       </div>
     </div>
   );

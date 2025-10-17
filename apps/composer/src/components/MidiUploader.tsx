@@ -3,12 +3,13 @@ import type { Placement } from '../stores/useSequencerStore';
 import { midiClipToPlacements } from '../utils/midiToPlacement';
 
 interface MidiUploaderProps {
-  onPlacements?: (placements: Placement[]) => void;
+  onPlacements?: (placements: Placement[], metadata: { name: string; bpm: number; noteCount: number }) => void;
   onMetadata?: (metadata: { name: string; bpm: number }) => void;
   ensureAudioEngine: () => Promise<any>; // Function to ensure AudioEngine exists
+  compact?: boolean; // Suppress inline status display
 }
 
-export default function MidiUploader({ onPlacements, onMetadata, ensureAudioEngine }: MidiUploaderProps) {
+export default function MidiUploader({ onPlacements, onMetadata, ensureAudioEngine, compact = false }: MidiUploaderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,8 +34,9 @@ export default function MidiUploader({ onPlacements, onMetadata, ensureAudioEngi
       setStatus(`Loaded: ${file.name} @ ${clip.bpm} BPM, ${placements.length} icons (${clip.notes.length} notes)`);
 
       // Pass placements and metadata to parent
-      onPlacements?.(placements);
-      onMetadata?.({ name: clip.name, bpm: clip.bpm });
+      const metadata = { name: clip.name, bpm: clip.bpm, noteCount: clip.notes.length };
+      onPlacements?.(placements, metadata);
+      onMetadata?.(metadata);
     } catch (err: any) {
       console.error('MIDI load error:', err);
       setStatus(`Failed: ${err?.message ?? 'Unknown error'}`);
@@ -68,7 +70,7 @@ export default function MidiUploader({ onPlacements, onMetadata, ensureAudioEngi
           }
         }}
       />
-      {status && (
+      {!compact && status && (
         <span className="text-sm opacity-70">{status}</span>
       )}
     </div>
