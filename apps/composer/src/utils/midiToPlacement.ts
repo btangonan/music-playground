@@ -12,13 +12,19 @@ import type { Placement } from '../stores/useSequencerStore'
 function toSixteenthIndex(timeSec: number, bpm: number): number {
   const beats = timeSec * (bpm / 60)
   const sixteenths = Math.round(beats * 4)
-
-  // Return -1 for notes beyond 4-bar grid (caller will filter)
   if (sixteenths < 0 || sixteenths > 63) {
     return -1
   }
-
   return sixteenths
+}
+
+/**
+ * Convert MIDI duration (seconds) to length in sixteenths (>=1)
+ */
+function toSixteenthLength(durationSec: number, bpm: number): number {
+  const beats = durationSec * (bpm / 60)
+  const sixteenths = Math.round(beats * 4)
+  return Math.max(1, sixteenths)
 }
 
 /**
@@ -30,79 +36,66 @@ function toSixteenthIndex(timeSec: number, bpm: number): number {
  * Most MIDI files use melodic instruments, so we default to synth/piano sounds
  */
 function mapMidiToSoundId(midiNote: number): string {
-  // MIDI note ranges (C-1 = 0, middle C = 60, G9 = 127)
-
-  // Very low bass range (C0-B1: MIDI 0-35)
   if (midiNote < 36) {
-    return 'sub' // Sub bass for very low notes
+    return 'sub'
   }
-
-  // Bass range (C2-B2: MIDI 36-47)
   if (midiNote >= 36 && midiNote <= 47) {
-    return 'wobble' // Wobble bass for low melodic notes
+    return 'wobble'
   }
-
-  // Lower melodic range (C3-B3: MIDI 48-59)
-  // Changed from percussion to melodic instruments
   if (midiNote >= 48 && midiNote <= 59) {
-    return 'pad' // Pad for lower melodic range (was kick/snare/hihat/clap)
+    return 'pad'
   }
-
-  // Mid melodic range (C4-B4: MIDI 60-71)
   if (midiNote >= 60 && midiNote <= 71) {
-    return 'lead' // Lead synth for mid range
+    return 'lead'
   }
-
-  // Upper melodic range (C5-B5: MIDI 72-83)
   if (midiNote >= 72 && midiNote <= 83) {
-    return 'pluck' // Pluck for upper melodic range
+    return 'pluck'
   }
-
-  // High range (C6-B6: MIDI 84-95)
   if (midiNote >= 84 && midiNote <= 95) {
-    return 'arp' // Arp for high melodic lines
+    return 'arp'
   }
-
-  // Very high range (C7+: MIDI 96+)
   if (midiNote >= 96) {
-    return 'sweep' // Sweep/FX for very high notes
+    return 'sweep'
   }
-
-  // Default fallback
   return 'lead'
 }
 
 /**
  * Convert MIDI clip to sequencer placements
- * Handles deduplication (keeps highest velocity per cell)
+ * Handles deduplication (keeps highest velocity or longer duration per cell)
  * Truncates to 4-bar grid (0-63 sixteenth notes)
  */
 export function midiClipToPlacements(clip: ParsedMidiClip): Placement[] {
   const { bpm, notes } = clip
 
-  // Map to track deduplication: "bar_soundId_pitch" → note with highest velocity
-  const cellMap = new Map<string, ParsedMidiNote & { bar: number }>()
+  // Map to track deduplication: "bar_soundId_pitch" → note with preferred props
+  const cellMap = new Map<string, ParsedMidiNote & { bar: number; duration16: number }>()
 
   for (const note of notes) {
     const bar = toSixteenthIndex(note.timeSec, bpm)
-
-    // Skip notes beyond 4-bar grid (toSixteenthIndex returns -1)
     if (bar < 0 || bar > 63) continue
 
     const soundId = mapMidiToSoundId(note.midi)
-    const pitch = note.midi // Keep MIDI pitch for note playback
+    const pitch = note.midi
 
-    // Create unique cell key
+    // Convert duration to sixteenths and clamp to loop end
+    const rawLen16 = toSixteenthLength(note.durationSec, bpm)
+    const end = Math.min(64, bar + rawLen16)
+    const duration16 = Math.max(1, end - bar)
+
     const cellKey = `${bar}_${soundId}_${pitch}`
-
-    // Keep highest velocity if duplicate
     const existing = cellMap.get(cellKey)
-    if (!existing || note.velocity > existing.velocity) {
-      cellMap.set(cellKey, { ...note, bar })
+
+    if (!existing) {
+      cellMap.set(cellKey, { ...note, bar, duration16 })
+    } else {
+      // Prefer higher velocity; if tie, prefer longer duration
+      if (note.velocity > existing.velocity || (note.velocity === existing.velocity && duration16 > existing.duration16)) {
+        cellMap.set(cellKey, { ...note, bar, duration16 })
+      }
     }
   }
 
-  // Convert to placements array
   const placements: Placement[] = []
 
   for (const [, note] of cellMap) {
@@ -110,12 +103,13 @@ export function midiClipToPlacements(clip: ParsedMidiClip): Placement[] {
       soundId: mapMidiToSoundId(note.midi),
       bar: note.bar,
       pitch: note.midi,
-      velocity: Math.round(note.velocity * 100) // Convert 0-1 → 0-100
-    })
+      velocity: Math.round(note.velocity * 100),
+      // NEW: duration captured from MIDI (UI/schema default is 1 if absent)
+      // @ts-ignore allow extra field for now; downstream treats as any[] in LoopLabView
+      duration16: note.duration16
+    } as any)
   }
 
-  // Sort by bar position for deterministic order
   placements.sort((a, b) => a.bar - b.bar)
-
   return placements
 }
