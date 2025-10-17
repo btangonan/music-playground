@@ -41,6 +41,7 @@ const ZONE_MID_END = 24;   // rows 12-23: C4-B4
 // Subdivision widths for hover precision
 const EIGHTH_WIDTH = COLUMN_WIDTH / 2;   // 24px
 const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4; // 12px
+const EPS = 0.0001; // Epsilon for boundary stability in subdivision calculations
 
 // Helper function to calculate icon dimensions based on resolution
 // Used by both renderDragGhost and renderPlacements for consistency
@@ -109,16 +110,17 @@ export default function IconSequencerWithDensity({
     e.dataTransfer.setData('soundId', placement.soundId);
 
     // Create a properly sized drag image element with centered hotspot
-    const { iconVisualSize } = getIconDimensions(resolution);
+    // Use scaled sizes to match the visual (scale 0.8)
+    const { scaledIconSize, scaledHalfSize } = getIconDimensions(resolution);
     const dragImg = document.createElement('div');
-    dragImg.style.width = `${iconVisualSize}px`;
-    dragImg.style.height = `${iconVisualSize}px`;
+    dragImg.style.width = `${scaledIconSize}px`;
+    dragImg.style.height = `${scaledIconSize}px`;
     dragImg.style.position = 'absolute';
     dragImg.style.top = '-9999px';
     dragImg.style.opacity = '0';
     document.body.appendChild(dragImg);
-    // Set hotspot to center of drag image for natural grab feeling
-    e.dataTransfer.setDragImage(dragImg, iconVisualSize / 2, iconVisualSize / 2);
+    // Set hotspot to center of scaled drag image for natural grab feeling
+    e.dataTransfer.setDragImage(dragImg, scaledHalfSize, scaledHalfSize);
 
     // Clean up after a short delay
     setTimeout(() => {
@@ -149,8 +151,9 @@ export default function IconSequencerWithDensity({
     }
     
     if (!sequencerRef.current) return;
-    
-    const rect = e.currentTarget.getBoundingClientRect();
+
+    // Use sequencerRef for consistent rect calculation with handleDrop
+    const rect = sequencerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     
@@ -220,12 +223,14 @@ export default function IconSequencerWithDensity({
         break;
       case '1/8':
         // Eighth notes: each column = 4 sixteenths, split into 2 halves
-        const eighthWithinCol = Math.floor(xWithinCol / (COLUMN_WIDTH / 2));
+        // Add epsilon to prevent boundary rounding errors
+        const eighthWithinCol = Math.floor((xWithinCol + EPS) / (COLUMN_WIDTH / 2));
         sixteenthPosition = col * 4 + eighthWithinCol * 2;
         break;
       case '1/16':
         // Sixteenth notes: each column = 4 sixteenths, split into 4 quarters
-        const sixteenthWithinCol = Math.floor(xWithinCol / (COLUMN_WIDTH / 4));
+        // Add epsilon to prevent boundary rounding errors
+        const sixteenthWithinCol = Math.floor((xWithinCol + EPS) / (COLUMN_WIDTH / 4));
         sixteenthPosition = col * 4 + sixteenthWithinCol;
         break;
     }
@@ -621,26 +626,23 @@ export default function IconSequencerWithDensity({
     const IconComponent = sound.icon;
 
     // Calculate dynamic size based on current resolution
-    // Use unscaled half size to center the outer container at cursor
-    const { iconVisualSize } = getIconDimensions(resolution);
-    const half = iconVisualSize / 2;
+    // Use scaled sizes to match native drag image and placed icons
+    const { scaledIconSize, scaledHalfSize } = getIconDimensions(resolution);
 
     return (
       <div
         style={{
           position: 'fixed',
-          left: `${dragGhost.x - half}px`,
-          top: `${dragGhost.y - half}px`,
-          width: `${iconVisualSize}px`,
-          height: `${iconVisualSize}px`,
+          left: `${dragGhost.x - scaledHalfSize}px`,
+          top: `${dragGhost.y - scaledHalfSize}px`,
+          width: `${scaledIconSize}px`,
+          height: `${scaledIconSize}px`,
           opacity: 0.8,
           pointerEvents: 'none',
           zIndex: 1000
         }}
       >
-        <div style={{ transform: 'scale(0.8)', transformOrigin: 'center center' }}>
-          <IconComponent />
-        </div>
+        <IconComponent />
       </div>
     );
   };
