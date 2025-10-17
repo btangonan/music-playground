@@ -107,21 +107,23 @@ export default function IconSequencerWithDensity({
     e.dataTransfer.effectAllowed = 'copyMove';
     e.dataTransfer.setData('placementIndex', index.toString());
     e.dataTransfer.setData('soundId', placement.soundId);
-    
-    // Create a completely transparent DOM element for drag image
-    const emptyDiv = document.createElement('div');
-    emptyDiv.style.width = '1px';
-    emptyDiv.style.height = '1px';
-    emptyDiv.style.position = 'absolute';
-    emptyDiv.style.top = '-9999px';
-    emptyDiv.style.opacity = '0';
-    document.body.appendChild(emptyDiv);
-    e.dataTransfer.setDragImage(emptyDiv, 0, 0);
-    
+
+    // Create a properly sized drag image element with centered hotspot
+    const { iconVisualSize } = getIconDimensions(resolution);
+    const dragImg = document.createElement('div');
+    dragImg.style.width = `${iconVisualSize}px`;
+    dragImg.style.height = `${iconVisualSize}px`;
+    dragImg.style.position = 'absolute';
+    dragImg.style.top = '-9999px';
+    dragImg.style.opacity = '0';
+    document.body.appendChild(dragImg);
+    // Set hotspot to center of drag image for natural grab feeling
+    e.dataTransfer.setDragImage(dragImg, iconVisualSize / 2, iconVisualSize / 2);
+
     // Clean up after a short delay
     setTimeout(() => {
-      if (document.body.contains(emptyDiv)) {
-        document.body.removeChild(emptyDiv);
+      if (document.body.contains(dragImg)) {
+        document.body.removeChild(dragImg);
       }
     }, 0);
   };
@@ -521,16 +523,24 @@ export default function IconSequencerWithDensity({
       const row = 83 - placement.pitch; // Convert pitch back to row
       const isDragged = draggedPlacementIndex === index;
 
-      // Convert bar (0-63 sixteenths) to visual pixel position within 16-column grid
-      // Each visual column represents 4 sixteenth notes
-      const visualColumn = Math.floor(placement.bar / 4); // Which column (0-15)
-      const sixteenthWithinColumn = placement.bar % 4; // Which sixteenth within that column (0-3)
-      const positionWithinColumn = sixteenthWithinColumn * (COLUMN_WIDTH / 4); // Pixel offset within column
-      const leftPosition = visualColumn * COLUMN_WIDTH + positionWithinColumn;
+      // Calculate quantum-center position: align to the center of the coarsest quantum
+      // that divides this position (quarter, eighth, or sixteenth)
+      const col = Math.floor(placement.bar / 4);  // Visual column (0-15)
+      const within = placement.bar % 4;  // Position within quarter (0-3)
 
-      // Center icons at a fixed pixel position regardless of resolution
-      // Target: icon center at leftPosition + SIXTEENTH_WIDTH/2
-      const targetCenter = leftPosition + SIXTEENTH_WIDTH / 2;
+      let centerWithinQuarter: number;
+      if (within === 0) {
+        // Quarter-aligned: center at middle of 48px column
+        centerWithinQuarter = 24;
+      } else if (within === 2) {
+        // Eighth-aligned: center at second eighth position
+        centerWithinQuarter = 36;
+      } else {
+        // Sixteenth-aligned: center at sixteenth positions (18 or 42)
+        centerWithinQuarter = 6 + within * 12;
+      }
+
+      const targetCenter = col * COLUMN_WIDTH + centerWithinQuarter;
 
       // Check if playhead is hitting this icon
       // Playhead position is in continuous steps (0-16 quarter notes)
@@ -538,6 +548,9 @@ export default function IconSequencerWithDensity({
       const iconQuarterNotePosition = placement.bar / 4;
       const distance = Math.abs(currentStep - iconQuarterNotePosition);
       const isHit = isPlaying && distance < 0.08; // Tight threshold for hit
+
+      // Compute Y-axis center position for proper vertical centering
+      const rowCenter = row * ROW_HEIGHT + ROW_HEIGHT / 2;
 
       return (
         <motion.div
@@ -564,11 +577,12 @@ export default function IconSequencerWithDensity({
           }}
           style={{
             position: 'absolute',
-            left: `${targetCenter}px`,  // Center X position in pixels
-            top: `${row * ROW_HEIGHT}px`,
-            transform: 'translateX(-50%) translateZ(0)',  // Anchor by center + GPU acceleration
-            willChange: 'transform, left',  // Performance hint for frequent position changes
-            height: `${ROW_HEIGHT}px`,
+            left: `${targetCenter}px`,
+            top: `${rowCenter}px`,
+            transform: 'translate(-50%, -50%) translateZ(0)',  // Center X and Y + GPU
+            willChange: 'transform, left',
+            width: `${iconVisualSize}px`,
+            height: `${iconVisualSize}px`,
             cursor: isDragged ? 'grabbing' : 'grab',
             opacity: isDragged ? 0 : 1,
             pointerEvents: 'auto',
@@ -585,10 +599,9 @@ export default function IconSequencerWithDensity({
               damping: 20
             }}
             style={{
-              width: `${iconVisualSize}px`,
-              height: `${iconVisualSize}px`,
-              transformOrigin: 'center',  // Explicit transform origin for predictable scaling
-              pointerEvents: 'none'
+              width: '100%',
+              height: '100%',
+              transformOrigin: 'center'
             }}
           >
             <IconComponent />
