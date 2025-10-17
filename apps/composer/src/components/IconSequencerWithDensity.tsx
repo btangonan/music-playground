@@ -8,6 +8,7 @@ interface IconPlacement {
   bar: number; // 0-63 (sixteenth note positions across 4 bars)
   pitch: number; // MIDI note number (48-83 for 3 octaves: C3-B5)
   velocity: number;
+  duration16?: number; // NEW: duration in sixteenths (defaults to 1)
 }
 
 interface IconSequencerWithDensityProps {
