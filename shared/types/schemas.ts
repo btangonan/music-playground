@@ -20,7 +20,8 @@ export const IconStepSchema = z.object({
   row: z.number().int().min(0).max(3), // 4 rows max
   soundId: z.string().min(1),
   velocity: z.number().min(0).max(1).optional().default(0.8),
-  pitch: z.number().int().min(0).max(127) // MIDI note number for audio scheduling
+  pitch: z.number().int().min(0).max(127), // MIDI note number for audio scheduling
+  duration16: z.number().int().min(1).max(64).optional().default(1) // NEW: duration in sixteenths (backward-compatible)
 })
 
 /**
