@@ -14,8 +14,8 @@ export default function ChordLabels({
   const totalWidth = columnWidth * stepsPerBar * barChords.length;
   
   return (
-    <div 
-      style={{ 
+    <div
+      style={{
         width: `${totalWidth}px`,
         height: '24px',
         display: 'flex',

@@ -84,11 +84,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    const soundId = dragGhost?.soundId || draggingSound;
-    if (soundId) {
-      setDragGhost({ x: e.clientX, y: e.clientY, soundId });
-      if (!isDragging) setIsDragging(true);
-    }
     if (!sequencerRef.current) return;
     const rect = sequencerRef.current.getBoundingClientRect();
     let x = e.clientX - rect.left;
@@ -105,11 +100,43 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const sixteenthWithinCol = Math.floor((xWithinCol + EPS) / SIXTEENTH_WIDTH);
     const divisor = SNAP_DIVISOR[resolution];
     const raw = col * 4 + sixteenthWithinCol;
+    // Snap to START of quantized cell (bar stores cell left edge on canonical grid)
     const snappedBar = Math.round(raw / divisor) * divisor;
     const safeSnappedBar = Math.max(0, Math.min(63, snappedBar));
 
+    // DEBUG: Log hover calculations
+    console.log('🎯 HOVER:', {
+      resolution,
+      mouseX: x.toFixed(1),
+      mouseY: y.toFixed(1),
+      col,
+      row,
+      xWithinCol: xWithinCol.toFixed(1),
+      sixteenthWithinCol,
+      divisor,
+      raw,
+      snappedBar,
+      safeSnappedBar,
+      overlayLeft: (safeSnappedBar * SIXTEENTH_WIDTH).toFixed(1) + 'px',
+      overlayWidth: (divisor * SIXTEENTH_WIDTH).toFixed(1) + 'px',
+      centerX: (safeSnappedBar * SIXTEENTH_WIDTH + (divisor * SIXTEENTH_WIDTH) / 2).toFixed(1) + 'px'
+    });
+
     if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
       setHoveredCell({ row, col, xWithinCol, snappedBar: safeSnappedBar });
+    }
+
+    // Update drag ghost to snap to quantized position
+    const soundId = dragGhost?.soundId || draggingSound;
+    if (soundId) {
+      // Calculate quantized screen coordinates matching icon rendering
+      const quantizedCenterX = safeSnappedBar * SIXTEENTH_WIDTH;
+      const quantizedCenterY = row * ROW_HEIGHT + ROW_HEIGHT / 2;
+      const ghostX = rect.left + quantizedCenterX;
+      const ghostY = rect.top + quantizedCenterY;
+
+      setDragGhost({ x: ghostX, y: ghostY, soundId });
+      if (!isDragging) setIsDragging(true);
     }
   };
 
@@ -130,8 +157,27 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const sixteenthWithinCol = Math.floor((xWithinCol + EPS) / SIXTEENTH_WIDTH);
     const divisor = SNAP_DIVISOR[resolution];
     const raw = col * 4 + sixteenthWithinCol;
+    // Snap to START of quantized cell (bar stores cell left edge on canonical grid)
     const snappedBar = Math.round(raw / divisor) * divisor;
     const pitch = 83 - row;
+
+    // DEBUG: Log drop calculations
+    const iconCenterX = snappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
+    console.log('🎯 DROP:', {
+      resolution,
+      mouseX: x.toFixed(1),
+      mouseY: y.toFixed(1),
+      col,
+      row,
+      xWithinCol: xWithinCol.toFixed(1),
+      sixteenthWithinCol,
+      divisor,
+      raw,
+      snappedBar,
+      pitch,
+      iconCenterX: iconCenterX.toFixed(1) + 'px',
+      iconBar: snappedBar
+    });
     const isDuplicating = e.metaKey || e.altKey;
     const placementIndexStr = e.dataTransfer.getData('placementIndex');
     if (placementIndexStr) {
@@ -188,15 +234,23 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           const b = parseInt(color.slice(5, 7), 16);
           densityColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }
-        // Guides for current mode only
+        // Vertical lines at column boundaries and subdivisions
         const subdivisionLines: number[] = [];
-        if (resolution === '1/8') subdivisionLines.push(COLUMN_WIDTH / 2);
-        else if (resolution === '1/16') subdivisionLines.push(SIXTEENTH_WIDTH, COLUMN_WIDTH / 2, SIXTEENTH_WIDTH * 3);
+        if (resolution === '1/4') {
+          // Show line at left edge of quarter column (aligns with chord boundaries)
+          subdivisionLines.push(0); // Left edge
+        } else if (resolution === '1/8') {
+          // Show lines at eighth boundaries
+          subdivisionLines.push(0, COLUMN_WIDTH / 2); // 0px, 24px
+        } else if (resolution === '1/16') {
+          // Show all sixteenth boundaries
+          subdivisionLines.push(0, SIXTEENTH_WIDTH, COLUMN_WIDTH / 2, SIXTEENTH_WIDTH * 3); // 0, 12, 24, 36px
+        }
         cells.push(
-          <div key={col} style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0, borderRight: col < TIME_STEPS - 1 ? '1px solid rgba(0,0,0,0.1)' : 'none' }}>
+          <div key={col} style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0 }}>
             <div style={{ position: 'absolute', inset: 0, backgroundColor: barChordColor, pointerEvents: 'none' }} />
             {isDragging && (<div style={{ position: 'absolute', inset: 0, backgroundColor: densityColor, pointerEvents: 'none' }} />)}
-            {subdivisionLines.map((xPos, idx) => (<div key={`subdiv-${idx}`} style={{ position: 'absolute', left: `${xPos}px`, top: 0, width: '1px', height: '100%', backgroundColor: 'rgba(0,0,0,0.05)', pointerEvents: 'none' }} />))}
+            {subdivisionLines.map((xPos, idx) => (<div key={`subdiv-${idx}`} style={{ position: 'absolute', left: `${xPos}px`, top: 0, width: '1px', height: '100%', backgroundColor: 'rgba(0,0,0,0.1)', pointerEvents: 'none' }} />))}
           </div>
         );
       }
@@ -212,11 +266,26 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const IconComponent = sound.icon;
       const row = 83 - p.pitch;
       const isDragged = draggedPlacementIndex === index;
-      const targetCenter = centerXFromBar(p.bar);
+
+      // Icons render at sixteenth boundaries (on grid lines)
+      // bar is already a canonical grid position (0-63)
+      const targetCenter = p.bar * SIXTEENTH_WIDTH;
+
       const iconQuarterNotePosition = p.bar / 4;
       const distance = Math.abs(currentStep - iconQuarterNotePosition);
       const isHit = isPlaying && distance < 0.08;
       const rowCenter = row * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+      // DEBUG: Show icon position info
+      console.log(`📍 ICON ${index}:`, {
+        bar: p.bar,
+        resolution,
+        targetCenter: targetCenter.toFixed(1) + 'px',
+        row,
+        rowCenter: rowCenter.toFixed(1) + 'px',
+        pitch: p.pitch
+      });
+
       return (
         <motion.div key={index} draggable onDragStart={(e) => handlePlacementDragStart(e, index)} style={{ position: 'absolute', left: `${targetCenter}px`, top: `${rowCenter}px`, transform: 'translate(-50%, -50%) translateZ(0)', width: `${ICON_BOX}px`, height: `${ICON_BOX}px`, cursor: isDragged ? 'grabbing' : 'grab', opacity: isDragged ? 0 : 1, pointerEvents: 'auto', zIndex: 200, willChange: 'transform,left' }}>
           <motion.div animate={{ scale: isHit ? BASE_SCALE * 1.3 : BASE_SCALE }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} style={{ width: '100%', height: '100%', transformOrigin: 'center' }}><IconComponent /></motion.div>
@@ -230,10 +299,50 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     if (!hoveredCell || !isDragging) return null;
     const divisor = SNAP_DIVISOR[resolution];
     const hoverWidth = divisor * SIXTEENTH_WIDTH;
-    const hoverLeft = hoveredCell.snappedBar * SIXTEENTH_WIDTH;
+    // snappedBar is cell start, calculate left edge and center
+    const cellStartBar = hoveredCell.snappedBar;
+    const hoverLeft = cellStartBar * SIXTEENTH_WIDTH;
     const rowTop = hoveredCell.row * ROW_HEIGHT;
+    const cellCenterOffset = (divisor * SIXTEENTH_WIDTH) / 2;
+    const iconCenterX = hoverLeft + cellCenterOffset;
+
+    // DEBUG: Log overlay rendering values
+    console.log('🎨 OVERLAY RENDER:', {
+      resolution,
+      divisor,
+      SIXTEENTH_WIDTH,
+      cellStartBar,
+      hoverLeft,
+      hoverWidth,
+      cellCenterOffset,
+      iconCenterX
+    });
+
     return (
-      <div style={{ position: 'absolute', left: `${hoverLeft}px`, top: `${rowTop}px`, width: `${hoverWidth}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />
+      <>
+        {/* Hover highlight box */}
+        <div style={{ position: 'absolute', left: `${hoverLeft}px`, top: `${rowTop}px`, width: `${hoverWidth}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />
+
+        {/* DEBUG: Vertical line at icon center position */}
+        <div style={{ position: 'absolute', left: `${iconCenterX}px`, top: `${rowTop}px`, width: '2px', height: `${ROW_HEIGHT}px`, backgroundColor: 'red', pointerEvents: 'none', zIndex: 51 }} />
+
+        {/* DEBUG: Text label showing coordinates */}
+        <div style={{
+          position: 'absolute',
+          left: `${hoverLeft}px`,
+          top: `${rowTop - 20}px`,
+          fontSize: '10px',
+          fontFamily: 'monospace',
+          backgroundColor: 'rgba(255,255,255,0.9)',
+          padding: '2px 4px',
+          border: '1px solid black',
+          pointerEvents: 'none',
+          zIndex: 52,
+          whiteSpace: 'nowrap'
+        }}>
+          bar:{hoveredCell.snappedBar} cell:[{cellStartBar}-{cellStartBar+divisor}] L:{hoverLeft.toFixed(0)}px C:{iconCenterX.toFixed(0)}px
+        </div>
+      </>
     );
   };
 
