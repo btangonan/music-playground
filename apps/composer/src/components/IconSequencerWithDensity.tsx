@@ -85,6 +85,13 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     makeCenteredDragImage(e);
   };
 
+  const handleIconDoubleClick = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    // Remove the icon from placements
+    const updated = placements.filter((_, i) => i !== index);
+    setPlacements(updated);
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!sequencerRef.current) return;
@@ -305,7 +312,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       }
 
       return (
-        <motion.div key={index} draggable onDragStart={(e) => handlePlacementDragStart(e, index)} style={{ position: 'absolute', left: `${targetLeft}px`, top: `${rowCenter}px`, transform: 'translate(0, -50%) translateZ(0)', width: `${ICON_BOX}px`, height: `${ICON_BOX}px`, cursor: isDragged ? 'grabbing' : 'grab', opacity: isDragged ? 0 : 1, pointerEvents: 'auto', zIndex: 200, willChange: 'transform,left' }}>
+        <motion.div key={index} draggable onDragStart={(e) => handlePlacementDragStart(e, index)} onDoubleClick={(e) => handleIconDoubleClick(e, index)} style={{ position: 'absolute', left: `${targetLeft}px`, top: `${rowCenter}px`, transform: 'translate(0, -50%) translateZ(0)', width: `${ICON_BOX}px`, height: `${ICON_BOX}px`, cursor: isDragged ? 'grabbing' : 'grab', opacity: isDragged ? 0 : 1, pointerEvents: 'auto', zIndex: 200, willChange: 'transform,left' }}>
           <motion.div animate={{ scale: isHit ? BASE_SCALE * 1.3 : BASE_SCALE }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} style={{ width: '100%', height: '100%', transformOrigin: 'center' }}><IconComponent /></motion.div>
         </motion.div>
       );
