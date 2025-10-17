@@ -17,6 +17,8 @@ import type { Loop, ChordCell, IconStep } from '@music/types/schemas';
 import { useToast } from '../components/ToastContext';
 import { useAuth } from '../hooks/useAuth';
 
+type GridResolution = '1/4' | '1/8' | '1/16';
+
 export default function LoopLabView() {
   // Initialize auth token (sets test token to localStorage)
   useAuth();
@@ -41,6 +43,33 @@ export default function LoopLabView() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [loopName, setLoopName] = useState('Untitled Loop');
+
+  // Grid resolution state
+  const [resolution, setResolution] = useState<GridResolution>('1/4');
+
+  // Quantization configuration: maps resolution to snap divisor
+  const SNAP_DIVISOR = {
+    '1/4': 4,  // Snap to every 4th sixteenth (quarter notes)
+    '1/8': 2,  // Snap to every 2nd sixteenth (eighth notes)
+    '1/16': 1  // Snap to every sixteenth
+  } as const;
+
+  // Quantize bar position to current resolution
+  const quantizeBar = (bar: number): number => {
+    const divisor = SNAP_DIVISOR[resolution];
+    return Math.round(bar / divisor) * divisor;
+  };
+
+  // Convert bar position (0-63 sixteenth notes) to Tone.js time format
+  const barToToneTime = (bar: number): string => {
+    // bar is 0-63 representing sixteenth notes across 4 bars
+    // Tone.js format: "bar:quarter:sixteenth"
+    const barNum = Math.floor(bar / 16); // Which bar (0-3)
+    const sixteenthInBar = bar % 16; // Sixteenth within bar (0-15)
+    const quarter = Math.floor(sixteenthInBar / 4); // Quarter note (0-3)
+    const sixteenth = sixteenthInBar % 4; // Sixteenth within quarter (0-3)
+    return `${barNum}:${quarter}:${sixteenth}`;
+  };
 
   // Audio engine instance
   const audioEngineRef = useRef<AudioEngine | null>(null);
@@ -281,16 +310,8 @@ export default function LoopLabView() {
       const engineSoundId = mapSoundId(placement.soundId);
       const note = midiToNoteName(placement.pitch);
 
-      // Convert step position (0-15) to bar:quarter:sixteenth format
-      // Grid has 16 steps across 4 bars (4 steps per bar)
-      // placement.bar is 0-15, representing position across 4 bars
-      const bar = Math.floor(placement.bar / 4); // Which bar (0-3)
-      const stepInBar = placement.bar % 4; // Which step within that bar (0-3)
-
-      // Tone.js time format: "bar:quarter:sixteenth"
-      // Each bar has 4 quarter notes, each quarter has 4 sixteenths
-      // Since we have 4 steps per bar, each step is 1 quarter note
-      const time = `${bar}:${stepInBar}:0`;
+      // Convert placement.bar (0-63 sixteenth notes) to Tone.js time format
+      const time = barToToneTime(placement.bar);
 
       // Schedule note with Tone.js Transport
       const eventId = Tone.Transport.schedule((scheduleTime) => {
@@ -437,6 +458,8 @@ export default function LoopLabView() {
           onBpmChange={setBpm}
           selectedKey={selectedKey}
           onKeyChange={setSelectedKey}
+          resolution={resolution}
+          onResolutionChange={setResolution}
         />
 
         {/* Main Interface Container - 450px total */}
@@ -477,6 +500,8 @@ export default function LoopLabView() {
               isPlaying={isPlaying}
               onPlacementsChange={setPlacements}
               onPreviewNote={handlePreviewNote}
+              resolution={resolution}
+              quantizeBar={quantizeBar}
             />
 
             {/* Step Numbers - 10px */}

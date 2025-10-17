@@ -16,7 +16,7 @@ export const ChordCellSchema = z.object({
  * Note: row is for UI grid positioning only (not used by audio engine)
  */
 export const IconStepSchema = z.object({
-  bar: z.number().int().min(0),
+  bar: z.number().int().min(0).max(63), // 0-63: sixteenth notes across 4 bars (supports 1/4, 1/8, 1/16 resolution)
   row: z.number().int().min(0).max(3), // 4 rows max
   soundId: z.string().min(1),
   velocity: z.number().min(0).max(1).optional().default(0.8),

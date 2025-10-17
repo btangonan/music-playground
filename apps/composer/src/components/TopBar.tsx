@@ -9,16 +9,20 @@ interface TopBarProps {
   onBpmChange: (bpm: number) => void;
   selectedKey: string;
   onKeyChange: (key: string) => void;
+  resolution: '1/4' | '1/8' | '1/16';
+  onResolutionChange: (resolution: '1/4' | '1/8' | '1/16') => void;
 }
 
-export default function TopBar({ 
-  isPlaying, 
-  bpm, 
-  onPlayPause, 
-  onSave, 
+export default function TopBar({
+  isPlaying,
+  bpm,
+  onPlayPause,
+  onSave,
   onBpmChange,
   selectedKey,
-  onKeyChange
+  onKeyChange,
+  resolution,
+  onResolutionChange
 }: TopBarProps) {
   return (
     <div 
@@ -67,11 +71,32 @@ export default function TopBar({
         {/* Right Side - Key, BPM & Settings */}
         <div className="flex items-center gap-4">
           {/* Key Selector */}
-          <KeySelector 
+          <KeySelector
             selectedKey={selectedKey}
             onKeyChange={onKeyChange}
           />
-          
+
+          {/* Resolution Toggle */}
+          <div className="flex items-center gap-1">
+            {(['1/4', '1/8', '1/16'] as const).map((res) => (
+              <button
+                key={res}
+                onClick={() => onResolutionChange(res)}
+                className={`
+                  px-2 py-1 rounded-lg text-xs
+                  transition-all duration-150
+                  ${resolution === res
+                    ? 'bg-[#FFD11A] text-black font-bold'
+                    : 'bg-white border border-[rgba(0,0,0,0.1)] text-[rgba(0,0,0,0.55)] hover:bg-[rgba(0,0,0,0.05)]'
+                  }
+                `}
+                style={{ fontFamily: 'Inter', fontWeight: resolution === res ? 700 : 500, fontSize: '12px' }}
+              >
+                {res}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2">
             <span 
               className="text-[rgba(0,0,0,0.55)]"
