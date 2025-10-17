@@ -6,6 +6,7 @@ import IconGallery from '../components/IconGallery';
 import IconSequencerWithDensity from '../components/IconSequencerWithDensity';
 import StepNumbers from '../components/StepNumbers';
 import ChordLabels from '../components/ChordLabels';
+import MidiUploader from '../components/MidiUploader';
 import { type Chord } from '../components/chordData';
 import { AudioEngine } from '../audio/AudioEngine';
 import { mapSoundId } from '../audio/soundIdMapper';
@@ -46,6 +47,12 @@ export default function LoopLabView() {
 
   // Grid resolution state
   const [resolution, setResolution] = useState<GridResolution>('1/4');
+
+  // MIDI upload state - store BPM for sync button
+  const [midiMetadata, setMidiMetadata] = useState<{ name: string; bpm: number } | null>(null);
+
+  // Pitch range for dynamic grid sizing
+  const [pitchRange, setPitchRange] = useState<{ min: number; max: number } | null>(null);
 
   // Quantization configuration: maps resolution to snap divisor
   const SNAP_DIVISOR = {
@@ -286,6 +293,43 @@ export default function LoopLabView() {
     engine.scheduleNote(engineSoundId, note, '+0', 0.7);
   };
 
+  const ensureAudioEngine = async () => {
+    if (!audioEngineRef.current) {
+      const engine = new AudioEngine();
+      await engine.start();
+      audioEngineRef.current = engine;
+      engine.setBPM(bpm);
+    }
+    return audioEngineRef.current;
+  };
+
+  const handlePlacementsLoaded = (placements: any[]) => {
+    setPlacements(placements);
+
+    // Calculate pitch range from placements
+    if (placements.length > 0) {
+      const pitches = placements.map(p => p.pitch);
+      const minPitch = Math.min(...pitches);
+      const maxPitch = Math.max(...pitches);
+      setPitchRange({ min: minPitch, max: maxPitch });
+    } else {
+      setPitchRange(null); // Reset if no placements
+    }
+
+    showToast(`MIDI loaded: ${placements.length} icons added to grid`, 'success');
+  };
+
+  const handleMetadataLoaded = (metadata: { name: string; bpm: number }) => {
+    setMidiMetadata(metadata);
+  };
+
+  const handleSyncBpmToMidi = () => {
+    if (midiMetadata) {
+      setBpm(midiMetadata.bpm);
+      showToast(`BPM synced to MIDI: ${midiMetadata.bpm}`, 'success');
+    }
+  };
+
   // BPM synchronization
   useEffect(() => {
     if (audioEngineRef.current) {
@@ -462,6 +506,26 @@ export default function LoopLabView() {
           onResolutionChange={setResolution}
         />
 
+        {/* MIDI Upload Section */}
+        <div className="my-4 p-3 bg-white border-2 border-black rounded-xl">
+          <div className="flex items-center justify-between gap-3">
+            <MidiUploader
+              ensureAudioEngine={ensureAudioEngine}
+              onPlacements={handlePlacementsLoaded}
+              onMetadata={handleMetadataLoaded}
+            />
+            {midiMetadata && (
+              <button
+                className="px-3 py-2 border rounded bg-blue-50 hover:bg-blue-100 text-sm"
+                onClick={handleSyncBpmToMidi}
+                title={`MIDI BPM: ${midiMetadata.bpm}`}
+              >
+                Sync to MIDI BPM ({midiMetadata.bpm})
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Main Interface Container - 450px total */}
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
           {/* Chord Palette Strip - 32px */}
@@ -498,10 +562,12 @@ export default function LoopLabView() {
               onBarChordAssign={handleBarChordAssign}
               currentStep={currentStep}
               isPlaying={isPlaying}
+              placements={placements}
               onPlacementsChange={setPlacements}
               onPreviewNote={handlePreviewNote}
               resolution={resolution}
               quantizeBar={quantizeBar}
+              pitchRange={pitchRange}
             />
 
             {/* Step Numbers - 10px */}

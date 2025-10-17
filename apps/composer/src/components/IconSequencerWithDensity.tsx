@@ -19,6 +19,7 @@ interface IconSequencerWithDensityProps {
   onBarChordAssign: (barIndex: number, chord: Chord) => void;
   currentStep: number; // continuous 0-16 (quarter notes)
   isPlaying: boolean;
+  placements?: IconPlacement[]; // External placements (e.g., from MIDI import)
   onPlacementsChange?: (placements: IconPlacement[]) => void;
   onPreviewNote?: (soundId: string, pitch: number) => void;
   resolution: '1/4' | '1/8' | '1/16';
@@ -50,10 +51,26 @@ const BASE_SCALE = 0.8;
 const DEBUG = true;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
-  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
+  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
 
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
-  useEffect(() => { onPlacementsChange?.(placements); }, [placements, onPlacementsChange]);
+  const isSyncingFromExternal = useRef(false);
+
+  // Sync external placements (e.g., from MIDI import) to internal state
+  useEffect(() => {
+    if (externalPlacements) {
+      isSyncingFromExternal.current = true;
+      setPlacements(externalPlacements);
+    }
+  }, [externalPlacements]);
+
+  // Notify parent of placement changes (but skip during external sync to avoid circular updates)
+  useEffect(() => {
+    if (!isSyncingFromExternal.current) {
+      onPlacementsChange?.(placements);
+    }
+    isSyncingFromExternal.current = false;
+  }, [placements, onPlacementsChange]);
 
   // UPDATED: store snappedBar for absolute overlay
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number; xWithinCol: number; snappedBar: number } | null>(null);
