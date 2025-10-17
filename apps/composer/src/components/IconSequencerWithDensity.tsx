@@ -45,6 +45,9 @@ const centerXFromBar = (bar: number) => bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH 
 const ICON_BOX = 40;
 const BASE_SCALE = 0.8;
 
+// Debug flag - set to true to enable console logs and visual debug overlays
+const DEBUG = false;
+
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
   const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
 
@@ -104,33 +107,35 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const snappedBar = Math.round(raw / divisor) * divisor;
     const safeSnappedBar = Math.max(0, Math.min(63, snappedBar));
 
-    // DEBUG: Log hover calculations
-    console.log('🎯 HOVER:', {
-      resolution,
-      mouseX: x.toFixed(1),
-      mouseY: y.toFixed(1),
-      col,
-      row,
-      xWithinCol: xWithinCol.toFixed(1),
-      sixteenthWithinCol,
-      divisor,
-      raw,
-      snappedBar,
-      safeSnappedBar,
-      overlayLeft: (safeSnappedBar * SIXTEENTH_WIDTH).toFixed(1) + 'px',
-      overlayWidth: (divisor * SIXTEENTH_WIDTH).toFixed(1) + 'px',
-      centerX: (safeSnappedBar * SIXTEENTH_WIDTH + (divisor * SIXTEENTH_WIDTH) / 2).toFixed(1) + 'px'
-    });
+    if (DEBUG) {
+      console.log('🎯 HOVER:', {
+        resolution,
+        mouseX: x.toFixed(1),
+        mouseY: y.toFixed(1),
+        col,
+        row,
+        xWithinCol: xWithinCol.toFixed(1),
+        sixteenthWithinCol,
+        divisor,
+        raw,
+        snappedBar,
+        safeSnappedBar,
+        overlayLeft: (safeSnappedBar * SIXTEENTH_WIDTH).toFixed(1) + 'px',
+        overlayWidth: (divisor * SIXTEENTH_WIDTH).toFixed(1) + 'px',
+        centerX: (safeSnappedBar * SIXTEENTH_WIDTH + (divisor * SIXTEENTH_WIDTH) / 2).toFixed(1) + 'px'
+      });
+    }
 
     if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
       setHoveredCell({ row, col, xWithinCol, snappedBar: safeSnappedBar });
     }
 
-    // Update drag ghost to snap to quantized position
+    // Update drag ghost to snap to quantized position (Model A: mid-cell center)
     const soundId = dragGhost?.soundId || draggingSound;
     if (soundId) {
-      // Calculate quantized screen coordinates matching icon rendering
-      const quantizedCenterX = safeSnappedBar * SIXTEENTH_WIDTH;
+      // Calculate quantized screen coordinates at center of snapped cell
+      const cellWidth = divisor * SIXTEENTH_WIDTH;
+      const quantizedCenterX = safeSnappedBar * SIXTEENTH_WIDTH + cellWidth / 2;
       const quantizedCenterY = row * ROW_HEIGHT + ROW_HEIGHT / 2;
       const ghostX = rect.left + quantizedCenterX;
       const ghostY = rect.top + quantizedCenterY;
@@ -161,23 +166,24 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const snappedBar = Math.round(raw / divisor) * divisor;
     const pitch = 83 - row;
 
-    // DEBUG: Log drop calculations
-    const iconCenterX = snappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
-    console.log('🎯 DROP:', {
-      resolution,
-      mouseX: x.toFixed(1),
-      mouseY: y.toFixed(1),
-      col,
-      row,
-      xWithinCol: xWithinCol.toFixed(1),
-      sixteenthWithinCol,
-      divisor,
-      raw,
-      snappedBar,
-      pitch,
-      iconCenterX: iconCenterX.toFixed(1) + 'px',
-      iconBar: snappedBar
-    });
+    if (DEBUG) {
+      const iconCenterX = snappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
+      console.log('🎯 DROP:', {
+        resolution,
+        mouseX: x.toFixed(1),
+        mouseY: y.toFixed(1),
+        col,
+        row,
+        xWithinCol: xWithinCol.toFixed(1),
+        sixteenthWithinCol,
+        divisor,
+        raw,
+        snappedBar,
+        pitch,
+        iconCenterX: iconCenterX.toFixed(1) + 'px',
+        iconBar: snappedBar
+      });
+    }
     const isDuplicating = e.metaKey || e.altKey;
     const placementIndexStr = e.dataTransfer.getData('placementIndex');
     if (placementIndexStr) {
@@ -267,24 +273,25 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const row = 83 - p.pitch;
       const isDragged = draggedPlacementIndex === index;
 
-      // Icons render at sixteenth boundaries (on grid lines)
-      // bar is already a canonical grid position (0-63)
-      const targetCenter = p.bar * SIXTEENTH_WIDTH;
+      // Icons render at mid-sixteenth-cell (Model A: center-between-lines)
+      // bar is a canonical grid position (0-63), place icon at center of that sixteenth
+      const targetCenter = p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
 
       const iconQuarterNotePosition = p.bar / 4;
       const distance = Math.abs(currentStep - iconQuarterNotePosition);
       const isHit = isPlaying && distance < 0.08;
       const rowCenter = row * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-      // DEBUG: Show icon position info
-      console.log(`📍 ICON ${index}:`, {
-        bar: p.bar,
-        resolution,
-        targetCenter: targetCenter.toFixed(1) + 'px',
-        row,
-        rowCenter: rowCenter.toFixed(1) + 'px',
-        pitch: p.pitch
-      });
+      if (DEBUG) {
+        console.log(`📍 ICON ${index}:`, {
+          bar: p.bar,
+          resolution,
+          targetCenter: targetCenter.toFixed(1) + 'px',
+          row,
+          rowCenter: rowCenter.toFixed(1) + 'px',
+          pitch: p.pitch
+        });
+      }
 
       return (
         <motion.div key={index} draggable onDragStart={(e) => handlePlacementDragStart(e, index)} style={{ position: 'absolute', left: `${targetCenter}px`, top: `${rowCenter}px`, transform: 'translate(-50%, -50%) translateZ(0)', width: `${ICON_BOX}px`, height: `${ICON_BOX}px`, cursor: isDragged ? 'grabbing' : 'grab', opacity: isDragged ? 0 : 1, pointerEvents: 'auto', zIndex: 200, willChange: 'transform,left' }}>
@@ -306,42 +313,47 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const cellCenterOffset = (divisor * SIXTEENTH_WIDTH) / 2;
     const iconCenterX = hoverLeft + cellCenterOffset;
 
-    // DEBUG: Log overlay rendering values
-    console.log('🎨 OVERLAY RENDER:', {
-      resolution,
-      divisor,
-      SIXTEENTH_WIDTH,
-      cellStartBar,
-      hoverLeft,
-      hoverWidth,
-      cellCenterOffset,
-      iconCenterX
-    });
+    if (DEBUG) {
+      console.log('🎨 OVERLAY RENDER:', {
+        resolution,
+        divisor,
+        SIXTEENTH_WIDTH,
+        cellStartBar,
+        hoverLeft,
+        hoverWidth,
+        cellCenterOffset,
+        iconCenterX
+      });
+    }
 
     return (
       <>
         {/* Hover highlight box */}
         <div style={{ position: 'absolute', left: `${hoverLeft}px`, top: `${rowTop}px`, width: `${hoverWidth}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />
 
-        {/* DEBUG: Vertical line at icon center position */}
-        <div style={{ position: 'absolute', left: `${iconCenterX}px`, top: `${rowTop}px`, width: '2px', height: `${ROW_HEIGHT}px`, backgroundColor: 'red', pointerEvents: 'none', zIndex: 51 }} />
+        {DEBUG && (
+          <>
+            {/* DEBUG: Vertical line at icon center position */}
+            <div style={{ position: 'absolute', left: `${iconCenterX}px`, top: `${rowTop}px`, width: '2px', height: `${ROW_HEIGHT}px`, backgroundColor: 'red', pointerEvents: 'none', zIndex: 51 }} />
 
-        {/* DEBUG: Text label showing coordinates */}
-        <div style={{
-          position: 'absolute',
-          left: `${hoverLeft}px`,
-          top: `${rowTop - 20}px`,
-          fontSize: '10px',
-          fontFamily: 'monospace',
-          backgroundColor: 'rgba(255,255,255,0.9)',
-          padding: '2px 4px',
-          border: '1px solid black',
-          pointerEvents: 'none',
-          zIndex: 52,
-          whiteSpace: 'nowrap'
-        }}>
-          bar:{hoveredCell.snappedBar} cell:[{cellStartBar}-{cellStartBar+divisor}] L:{hoverLeft.toFixed(0)}px C:{iconCenterX.toFixed(0)}px
-        </div>
+            {/* DEBUG: Text label showing coordinates */}
+            <div style={{
+              position: 'absolute',
+              left: `${hoverLeft}px`,
+              top: `${rowTop - 20}px`,
+              fontSize: '10px',
+              fontFamily: 'monospace',
+              backgroundColor: 'rgba(255,255,255,0.9)',
+              padding: '2px 4px',
+              border: '1px solid black',
+              pointerEvents: 'none',
+              zIndex: 52,
+              whiteSpace: 'nowrap'
+            }}>
+              bar:{hoveredCell.snappedBar} cell:[{cellStartBar}-{cellStartBar+divisor}] L:{hoverLeft.toFixed(0)}px C:{iconCenterX.toFixed(0)}px
+            </div>
+          </>
+        )}
       </>
     );
   };
