@@ -46,7 +46,7 @@ const ICON_BOX = 40;
 const BASE_SCALE = 0.8;
 
 // Debug flag - set to true to enable console logs and visual debug overlays
-const DEBUG = false;
+const DEBUG = true;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
   const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
@@ -104,51 +104,43 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     y = Math.min(Math.max(y, 0), maxY);
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
-    const xWithinCol = x % COLUMN_WIDTH;
 
-    // NEW: snappedBar computed exactly like drop (absolute, not relative)
-    const sixteenthWithinCol = Math.floor((xWithinCol + EPS) / SIXTEENTH_WIDTH);
+    // CRITICAL: Snap to nearest valid grid position based on absolute mouse location
     const divisor = SNAP_DIVISOR[resolution];
-    const raw = col * 4 + sixteenthWithinCol;
-    // Snap to START of quantized cell (bar stores cell left edge on canonical grid)
-    let snappedBar = Math.round(raw / divisor) * divisor;
+    const absoluteRawBar = (x + EPS) / SIXTEENTH_WIDTH;
+    const snappedBar = Math.round(absoluteRawBar / divisor) * divisor;
 
-    // Bounds check: prevent hover/ghost from showing out-of-bounds positions
-    // Max valid bar is 60 to keep 40px icon within 768px container
+    // Bounds check: keep within grid (0-63) and prevent clipping (max 60 for 40px icon)
     const maxValidBar = 60;
-    snappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
-    const safeSnappedBar = snappedBar; // Already safe after bounds check
+    const finalSnappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
 
     if (DEBUG) {
-      console.log('🎯 HOVER:', {
+      console.log('🎯 HOVER SNAP LOGIC:', {
         resolution,
-        mouseX: x.toFixed(1),
-        mouseY: y.toFixed(1),
-        col,
-        row,
-        xWithinCol: xWithinCol.toFixed(1),
-        sixteenthWithinCol,
         divisor,
-        raw,
+        mouseX: x.toFixed(1),
+        col,
+        absoluteRawBar: absoluteRawBar.toFixed(2),
         snappedBar,
-        safeSnappedBar,
-        iconLeftX: (safeSnappedBar * SIXTEENTH_WIDTH).toFixed(1) + 'px',
-        overlayWidth: (divisor * SIXTEENTH_WIDTH).toFixed(1) + 'px'
+        finalSnappedBar,
+        snapCenterX: (finalSnappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2).toFixed(1) + 'px'
       });
     }
 
+    const safeSnappedBar = finalSnappedBar;
+
     if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
-      setHoveredCell({ row, col, xWithinCol, snappedBar: safeSnappedBar });
+      setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: safeSnappedBar });
     }
 
-    // Update drag ghost to snap to grid line position (left edge at line)
+    // Update drag ghost to center on the target sixteenth cell
     const soundId = dragGhost?.soundId || draggingSound;
     if (soundId) {
-      // Calculate quantized screen coordinates at grid line
-      const quantizedLeftX = safeSnappedBar * SIXTEENTH_WIDTH;
+      // Center the ghost icon within its target sixteenth cell (matching placed icon positioning)
+      const cellCenterX = safeSnappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
       const quantizedCenterY = row * ROW_HEIGHT + ROW_HEIGHT / 2;
-      // Ghost is positioned at left edge + half icon width to center it visually
-      const ghostX = rect.left + quantizedLeftX + ICON_BOX / 2;
+      // Ghost x/y are the center point (renderDragGhost offsets by ICON_BOX/2)
+      const ghostX = rect.left + cellCenterX;
       const ghostY = rect.top + quantizedCenterY;
 
       setDragGhost({ x: ghostX, y: ghostY, soundId });
@@ -169,37 +161,31 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     y = Math.min(Math.max(y, 0), maxY);
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
-    const xWithinCol = x % COLUMN_WIDTH;
-    const sixteenthWithinCol = Math.floor((xWithinCol + EPS) / SIXTEENTH_WIDTH);
-    const divisor = SNAP_DIVISOR[resolution];
-    const raw = col * 4 + sixteenthWithinCol;
-    // Snap to START of quantized cell (bar stores cell left edge on canonical grid)
-    let snappedBar = Math.round(raw / divisor) * divisor;
 
-    // Bounds check: prevent icons from being placed where they would clip out of bounds
-    // Icon needs ICON_BOX width (40px), which is ~3.33 sixteenths (40/12)
-    // So max valid bar is 63 - 3 = 60 to keep icon fully visible
-    const maxValidBar = 60; // Keeps 40px icon within 768px container (64 sixteenths)
-    snappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
+    // CRITICAL: Snap to nearest valid grid position based on absolute mouse location
+    const divisor = SNAP_DIVISOR[resolution];
+    const absoluteRawBar = (x + EPS) / SIXTEENTH_WIDTH;
+    const snappedBar = Math.round(absoluteRawBar / divisor) * divisor;
+
+    // Bounds check: keep within grid (0-63) and prevent clipping (max 60 for 40px icon)
+    const maxValidBar = 60;
+    const finalSnappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
 
     const pitch = 83 - row;
 
     if (DEBUG) {
-      const iconLeftX = snappedBar * SIXTEENTH_WIDTH;
       console.log('🎯 DROP:', {
         resolution,
+        divisor,
         mouseX: x.toFixed(1),
         mouseY: y.toFixed(1),
         col,
         row,
-        xWithinCol: xWithinCol.toFixed(1),
-        sixteenthWithinCol,
-        divisor,
-        raw,
+        absoluteRawBar: absoluteRawBar.toFixed(2),
         snappedBar,
+        finalSnappedBar,
         pitch,
-        iconLeftX: iconLeftX.toFixed(1) + 'px',
-        iconBar: snappedBar
+        snapCenterX: (finalSnappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2).toFixed(1) + 'px'
       });
     }
     const isDuplicating = e.metaKey || e.altKey;
@@ -208,12 +194,12 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const placementIndex = parseInt(placementIndexStr);
       if (isDuplicating) {
         const original = placements[placementIndex];
-        const np: IconPlacement = { ...original, bar: snappedBar, pitch };
+        const np: IconPlacement = { ...original, bar: finalSnappedBar, pitch };
         setPlacements([...placements, np]);
         onPreviewNote?.(np.soundId, pitch);
       } else {
         const up = [...placements];
-        up[placementIndex] = { ...up[placementIndex], bar: snappedBar, pitch };
+        up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch };
         setPlacements(up);
         onPreviewNote?.(up[placementIndex].soundId, pitch);
       }
@@ -221,7 +207,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     } else {
       const soundId = e.dataTransfer.getData('soundId');
       if (!soundId) return;
-      const np: IconPlacement = { soundId, bar: snappedBar, pitch, velocity: 80 };
+      const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 };
       setPlacements([...placements, np]);
       onPreviewNote?.(soundId, pitch);
     }
@@ -291,9 +277,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const row = 83 - p.pitch;
       const isDragged = draggedPlacementIndex === index;
 
-      // Icons render ON grid lines (left edge of icon at line position)
-      // bar is a canonical grid position (0-63)
-      const targetLeft = p.bar * SIXTEENTH_WIDTH;
+      // Icons render CENTERED on the target sixteenth cell
+      // bar is a canonical grid position (0-63) indicating the cell
+      // Center the icon within its target sixteenth cell
+      const cellCenterX = p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
+      const targetLeft = cellCenterX - ICON_BOX / 2;
 
       const iconQuarterNotePosition = p.bar / 4;
       const distance = Math.abs(currentStep - iconQuarterNotePosition);
