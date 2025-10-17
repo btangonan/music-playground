@@ -36,6 +36,7 @@ const BASE_MIDI = 48;
 const EIGHTH_WIDTH = COLUMN_WIDTH / 2;  // 24
 const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4; // 12
 const EPS = 0.0001;
+const WRAPPER_PADDING = 15; // Invisible buffer zone around drop area to catch edge drops
 
 // Canonical 1/16 backbone
 const SNAP_DIVISOR = { '1/4': 4, '1/8': 2, '1/16': 1 } as const;
@@ -60,6 +61,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number; soundId: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const sequencerRef = useRef<HTMLDivElement>(null);
+  const outerWrapperRef = useRef<HTMLDivElement>(null);
 
   const makeCenteredDragImage = (e: React.DragEvent) => {
     const dragImg = document.createElement('div');
@@ -94,12 +96,14 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
-    if (!sequencerRef.current) return;
-    const rect = sequencerRef.current.getBoundingClientRect();
-    let x = e.clientX - rect.left;
-    let y = e.clientY - rect.top;
-    const maxX = COLUMN_WIDTH * TIME_STEPS - EPS;
-    const maxY = ROW_HEIGHT * TOTAL_SEMITONES - EPS;
+    if (!outerWrapperRef.current) return;
+    const rect = outerWrapperRef.current.getBoundingClientRect();
+    // Subtract wrapper padding to get coordinates relative to inner grid
+    let x = e.clientX - rect.left - WRAPPER_PADDING;
+    let y = e.clientY - rect.top - WRAPPER_PADDING;
+    // Clamp to grid bounds
+    const maxX = COLUMN_WIDTH * TIME_STEPS;
+    const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
     x = Math.min(Math.max(x, 0), maxX);
     y = Math.min(Math.max(y, 0), maxY);
     const col = Math.floor(x / COLUMN_WIDTH);
@@ -107,11 +111,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
     // CRITICAL: Snap to nearest valid grid position based on absolute mouse location
     const divisor = SNAP_DIVISOR[resolution];
-    const absoluteRawBar = (x + EPS) / SIXTEENTH_WIDTH;
+    const absoluteRawBar = x / SIXTEENTH_WIDTH; // Remove EPS to prevent first-cell flapping
     const snappedBar = Math.round(absoluteRawBar / divisor) * divisor;
 
-    // Bounds check: keep within grid (0-63) and prevent clipping (max 60 for 40px icon)
-    const maxValidBar = 60;
+    // Bounds check: keep within grid (0-63)
+    const maxValidBar = 63;
     const finalSnappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
 
     if (DEBUG) {
@@ -140,8 +144,9 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const cellCenterX = safeSnappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
       const quantizedCenterY = row * ROW_HEIGHT + ROW_HEIGHT / 2;
       // Ghost x/y are the center point (renderDragGhost offsets by ICON_BOX/2)
-      const ghostX = rect.left + cellCenterX;
-      const ghostY = rect.top + quantizedCenterY;
+      // Add padding offset since grid is inset within wrapper
+      const ghostX = rect.left + WRAPPER_PADDING + cellCenterX;
+      const ghostY = rect.top + WRAPPER_PADDING + quantizedCenterY;
 
       setDragGhost({ x: ghostX, y: ghostY, soundId });
       if (!isDragging) setIsDragging(true);
@@ -151,12 +156,14 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!sequencerRef.current) return;
-    const rect = sequencerRef.current.getBoundingClientRect();
-    let x = e.clientX - rect.left;
-    let y = e.clientY - rect.top;
-    const maxX = COLUMN_WIDTH * TIME_STEPS - EPS;
-    const maxY = ROW_HEIGHT * TOTAL_SEMITONES - EPS;
+    if (!outerWrapperRef.current) return;
+    const rect = outerWrapperRef.current.getBoundingClientRect();
+    // Subtract wrapper padding to get coordinates relative to inner grid
+    let x = e.clientX - rect.left - WRAPPER_PADDING;
+    let y = e.clientY - rect.top - WRAPPER_PADDING;
+    // Clamp to grid bounds
+    const maxX = COLUMN_WIDTH * TIME_STEPS;
+    const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
     x = Math.min(Math.max(x, 0), maxX);
     y = Math.min(Math.max(y, 0), maxY);
     const col = Math.floor(x / COLUMN_WIDTH);
@@ -164,11 +171,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
     // CRITICAL: Snap to nearest valid grid position based on absolute mouse location
     const divisor = SNAP_DIVISOR[resolution];
-    const absoluteRawBar = (x + EPS) / SIXTEENTH_WIDTH;
+    const absoluteRawBar = x / SIXTEENTH_WIDTH; // Remove EPS to prevent first-cell flapping
     const snappedBar = Math.round(absoluteRawBar / divisor) * divisor;
 
-    // Bounds check: keep within grid (0-63) and prevent clipping (max 60 for 40px icon)
-    const maxValidBar = 60;
+    // Bounds check: keep within grid (0-63)
+    const maxValidBar = 63;
     const finalSnappedBar = Math.max(0, Math.min(maxValidBar, snappedBar));
 
     const pitch = 83 - row;
@@ -378,11 +385,25 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div>
-      <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
-        {renderGrid()}
-        {renderHoverOverlay()}
-        {!assignmentMode && renderPlacements()}
-        {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#FFD11A', boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)', pointerEvents: 'none', zIndex: 150 }} />)}
+      {/* Outer drop zone wrapper - extended hit zone with padding buffer */}
+      <div
+        ref={outerWrapperRef}
+        className="relative flex items-center justify-center"
+        style={{
+          width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`,
+          height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px`
+        }}
+        onDragOver={!assignmentMode ? handleDragOver : undefined}
+        onDragLeave={!assignmentMode ? handleDragLeave : undefined}
+        onDrop={!assignmentMode ? handleDrop : undefined}
+        onDragEnd={!assignmentMode ? handleDragEnd : undefined}
+      >
+        <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }}>
+          {renderGrid()}
+          {renderHoverOverlay()}
+          {!assignmentMode && renderPlacements()}
+          {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#FFD11A', boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)', pointerEvents: 'none', zIndex: 150 }} />)}
+        </div>
       </div>
       {renderDragGhost()}
     </div>
