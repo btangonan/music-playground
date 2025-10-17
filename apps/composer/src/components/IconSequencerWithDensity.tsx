@@ -558,9 +558,6 @@ export default function IconSequencerWithDensity({
             const updatedPlacements = placements.filter((_, i) => i !== index);
             setPlacements(updatedPlacements);
           }}
-          animate={{
-            scale: isHit ? 1.3 * 0.8 : 0.8
-          }}
           transition={{
             type: "spring",
             stiffness: 600,
@@ -568,20 +565,25 @@ export default function IconSequencerWithDensity({
           }}
           style={{
             position: 'absolute',
-            left: `${centeredLeft}px`,  // Centered position keeps icons at same visual location
+            left: `${targetCenter}px`,  // Center X position in pixels
             top: `${row * ROW_HEIGHT}px`,
-            width: `${iconWidth}px`,  // Variable width based on resolution
+            transform: 'translateX(-50%)',  // Anchor by center
             height: `${ROW_HEIGHT}px`,
             cursor: isDragged ? 'grabbing' : 'grab',
             opacity: isDragged ? 0 : 1,
             pointerEvents: 'auto',
-            zIndex: 200,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            zIndex: 200
           }}
         >
-          <div
+          <motion.div
+            animate={{
+              scale: isHit ? 1.3 * 0.8 : 0.8
+            }}
+            transition={{
+              type: "spring",
+              stiffness: 600,
+              damping: 20
+            }}
             style={{
               width: `${iconVisualSize}px`,
               height: `${iconVisualSize}px`,
@@ -589,7 +591,7 @@ export default function IconSequencerWithDensity({
             }}
           >
             <IconComponent />
-          </div>
+          </motion.div>
         </motion.div>
       );
     });
@@ -605,15 +607,16 @@ export default function IconSequencerWithDensity({
     const IconComponent = sound.icon;
 
     // Calculate dynamic size based on current resolution
-    // Use scaledHalfSize to account for the 0.8 transform applied to inner div
-    const { iconVisualSize, scaledHalfSize } = getIconDimensions(resolution);
+    // Use unscaled half size to center the outer container at cursor
+    const { iconVisualSize } = getIconDimensions(resolution);
+    const half = iconVisualSize / 2;
 
     return (
       <div
         style={{
           position: 'fixed',
-          left: `${dragGhost.x - scaledHalfSize}px`,
-          top: `${dragGhost.y - scaledHalfSize}px`,
+          left: `${dragGhost.x - half}px`,
+          top: `${dragGhost.y - half}px`,
           width: `${iconVisualSize}px`,
           height: `${iconVisualSize}px`,
           opacity: 0.8,
@@ -621,7 +624,7 @@ export default function IconSequencerWithDensity({
           zIndex: 1000
         }}
       >
-        <div style={{ transform: 'scale(0.8)' }}>
+        <div style={{ transform: 'scale(0.8)', transformOrigin: 'center center' }}>
           <IconComponent />
         </div>
       </div>
