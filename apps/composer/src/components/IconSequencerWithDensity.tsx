@@ -5,7 +5,7 @@ import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chord
 
 interface IconPlacement {
   soundId: string;
-  bar: number; // 0-15 (time step)
+  bar: number; // 0-63 (sixteenth note positions across 4 bars, supports 1/4, 1/8, 1/16 resolution)
   pitch: number; // MIDI note number (48-83 for 3 octaves: C3-B5)
   velocity: number;
 }
@@ -21,13 +21,15 @@ interface IconSequencerWithDensityProps {
   isPlaying: boolean;
   onPlacementsChange?: (placements: IconPlacement[]) => void;
   onPreviewNote?: (soundId: string, pitch: number) => void;
+  resolution: '1/4' | '1/8' | '1/16'; // Grid quantization resolution
+  quantizeBar: (bar: number) => number; // Snap bar position to current resolution
 }
 
 const COLUMN_WIDTH = 48;
 const ROW_HEIGHT = 10;
-const TIME_STEPS = 16;
+const TIME_STEPS = 16; // Visual columns: 4 bars × 4 quarter notes = 16 columns
 const BARS = 4;
-const STEPS_PER_BAR = 4;
+const STEPS_PER_BAR = 4; // Visual quarter notes per bar
 const TOTAL_SEMITONES = 36; // C3 to B5
 const BASE_MIDI = 48; // C3
 
@@ -35,6 +37,28 @@ const BASE_MIDI = 48; // C3
 const ZONE_HIGH_END = 12;  // rows 0-11: C5-B5
 const ZONE_MID_END = 24;   // rows 12-23: C4-B4
 // rows 24-35: C3-B3 (LOW)
+
+// Subdivision widths for hover precision
+const EIGHTH_WIDTH = COLUMN_WIDTH / 2;   // 24px
+const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4; // 12px
+
+// Helper function to calculate icon dimensions based on resolution
+// Used by both renderDragGhost and renderPlacements for consistency
+const getIconDimensions = (resolution: '1/4' | '1/8' | '1/16') => {
+  const iconWidth = resolution === '1/4' ? COLUMN_WIDTH :
+                    resolution === '1/8' ? EIGHTH_WIDTH :
+                    SIXTEENTH_WIDTH;
+  // iconVisualSize is the size before CSS scale(0.8) is applied
+  const iconVisualSize = Math.min(iconWidth, 40);
+  // scaledIconSize is the final visual size after scale(0.8) transform
+  const scaledIconSize = iconVisualSize * 0.8;
+  return {
+    iconWidth,
+    iconVisualSize,
+    halfSize: iconVisualSize / 2,
+    scaledHalfSize: scaledIconSize / 2  // For centering drag ghost on cursor
+  };
+};
 
 export default function IconSequencerWithDensity({
   selectedSound,
@@ -46,7 +70,9 @@ export default function IconSequencerWithDensity({
   currentStep,
   isPlaying,
   onPlacementsChange,
-  onPreviewNote
+  onPreviewNote,
+  resolution,
+  quantizeBar
 }: IconSequencerWithDensityProps) {
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
 
@@ -54,7 +80,11 @@ export default function IconSequencerWithDensity({
   useEffect(() => {
     onPlacementsChange?.(placements);
   }, [placements, onPlacementsChange]);
-  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{
+    row: number;
+    col: number;
+    xWithinCol: number  // Position within column (0-47) for precise subdivision highlighting
+  } | null>(null);
   const [selectedPlacement, setSelectedPlacement] = useState<number | null>(null);
   const [draggedPlacementIndex, setDraggedPlacementIndex] = useState<number | null>(null);
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number; soundId: string } | null>(null);
@@ -125,9 +155,10 @@ export default function IconSequencerWithDensity({
     // Calculate cell position
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
-    
+    const xWithinCol = x % COLUMN_WIDTH;  // Capture position within column for precise hover
+
     if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
-      setHoveredCell({ row, col });
+      setHoveredCell({ row, col, xWithinCol });
     }
   };
 
@@ -161,7 +192,7 @@ export default function IconSequencerWithDensity({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // Calculate cell position at drop point
+    // Calculate visual column (0-15) and row
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
 
@@ -173,6 +204,32 @@ export default function IconSequencerWithDensity({
       setDraggedPlacementIndex(null);
       return;
     }
+
+    // Calculate position within the column (0-48px)
+    const xWithinCol = x % COLUMN_WIDTH;
+
+    // Map visual position to internal sixteenth note position (0-63)
+    // Each visual column represents 4 sixteenth notes
+    let sixteenthPosition: number;
+    switch (resolution) {
+      case '1/4':
+        // Quarter notes: each column = 4 sixteenths, snap to start
+        sixteenthPosition = col * 4;
+        break;
+      case '1/8':
+        // Eighth notes: each column = 4 sixteenths, split into 2 halves
+        const eighthWithinCol = Math.floor(xWithinCol / (COLUMN_WIDTH / 2));
+        sixteenthPosition = col * 4 + eighthWithinCol * 2;
+        break;
+      case '1/16':
+        // Sixteenth notes: each column = 4 sixteenths, split into 4 quarters
+        const sixteenthWithinCol = Math.floor(xWithinCol / (COLUMN_WIDTH / 4));
+        sixteenthPosition = col * 4 + sixteenthWithinCol;
+        break;
+    }
+
+    // Quantize to ensure snapping
+    const snappedBar = quantizeBar(sixteenthPosition);
 
     // Convert row to pitch (inverted: row 0 = B5, row 35 = C3)
     const pitch = 83 - row; // B5 (83) at top, C3 (48) at bottom
@@ -191,7 +248,7 @@ export default function IconSequencerWithDensity({
         const originalPlacement = placements[placementIndex];
         const newPlacement: IconPlacement = {
           ...originalPlacement,
-          bar: col,
+          bar: snappedBar,
           pitch,
         };
         setPlacements([...placements, newPlacement]);
@@ -203,7 +260,7 @@ export default function IconSequencerWithDensity({
         const updatedPlacements = [...placements];
         updatedPlacements[placementIndex] = {
           ...updatedPlacements[placementIndex],
-          bar: col,
+          bar: snappedBar,
           pitch,
         };
         setPlacements(updatedPlacements);
@@ -219,7 +276,7 @@ export default function IconSequencerWithDensity({
 
       const newPlacement: IconPlacement = {
         soundId,
-        bar: col,
+        bar: snappedBar,
         pitch,
         velocity: 80,
       };
@@ -289,6 +346,16 @@ export default function IconSequencerWithDensity({
         
         const isHovered = hoveredCell?.row === row && hoveredCell?.col === col;
         
+        // Calculate subdivision lines based on resolution
+        const subdivisionLines: number[] = [];
+        if (resolution === '1/8') {
+          // 1 line at 50% (divides column into 2 eighths)
+          subdivisionLines.push(COLUMN_WIDTH / 2);
+        } else if (resolution === '1/16') {
+          // 3 lines at 25%, 50%, 75% (divides column into 4 sixteenths)
+          subdivisionLines.push(COLUMN_WIDTH / 4, COLUMN_WIDTH / 2, (COLUMN_WIDTH * 3) / 4);
+        }
+
         cells.push(
           <div
             key={col}
@@ -331,7 +398,7 @@ export default function IconSequencerWithDensity({
                 border: 'none'
               }}
             />
-            
+
             {/* Pitch density overlay - ONLY visible when dragging */}
             {isDragging && (
               <div
@@ -351,20 +418,62 @@ export default function IconSequencerWithDensity({
                 }}
               />
             )}
-            
-            {/* Hover indicator (only when dragging) */}
-            {isHovered && isDragging && (
+
+            {/* Subdivision lines based on resolution */}
+            {subdivisionLines.map((xPos, idx) => (
               <div
+                key={`subdiv-${idx}`}
                 style={{
                   position: 'absolute',
-                  inset: 0,
-                  backgroundColor: 'rgba(142, 225, 255, 0.3)',
-                  border: '2px solid rgba(0,0,0,0.25)',
+                  left: `${xPos}px`,
+                  top: 0,
+                  width: '1px',
+                  height: '100%',
+                  backgroundColor: 'rgba(0,0,0,0.05)',
                   pointerEvents: 'none',
-                  zIndex: 50
+                  zIndex: 10
                 }}
               />
-            )}
+            ))}
+
+            {/* Hover indicator (only when dragging) */}
+            {isHovered && isDragging && (() => {
+              // Calculate precise hover indicator dimensions based on resolution
+              let hoverWidth: number;
+              let hoverLeft: number;
+
+              if (resolution === '1/4') {
+                // Full column width for quarter notes
+                hoverWidth = COLUMN_WIDTH;
+                hoverLeft = 0;
+              } else if (resolution === '1/8') {
+                // Half column width for eighth notes
+                const eighthIndex = Math.floor(hoveredCell!.xWithinCol / EIGHTH_WIDTH);
+                hoverWidth = EIGHTH_WIDTH;
+                hoverLeft = eighthIndex * EIGHTH_WIDTH;
+              } else {
+                // Quarter column width for sixteenth notes
+                const sixteenthIndex = Math.floor(hoveredCell!.xWithinCol / SIXTEENTH_WIDTH);
+                hoverWidth = SIXTEENTH_WIDTH;
+                hoverLeft = sixteenthIndex * SIXTEENTH_WIDTH;
+              }
+
+              return (
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${hoverLeft}px`,
+                    top: 0,
+                    width: `${hoverWidth}px`,
+                    height: ROW_HEIGHT,
+                    backgroundColor: 'rgba(142, 225, 255, 0.3)',
+                    border: '2px solid rgba(0,0,0,0.25)',
+                    pointerEvents: 'none',
+                    zIndex: 50
+                  }}
+                />
+              );
+            })()}
           </div>
         );
       }
@@ -401,22 +510,36 @@ export default function IconSequencerWithDensity({
 
   // Render placed icons
   const renderPlacements = () => {
+    // Calculate icon width based on resolution to prevent overlaps
+    const { iconWidth, iconVisualSize } = getIconDimensions(resolution);
+
     return placements.map((placement, index) => {
       const sound = SOUND_ICONS.find(s => s.id === placement.soundId);
       if (!sound) return null;
-      
+
       const IconComponent = sound.icon;
       const row = 83 - placement.pitch; // Convert pitch back to row
       const isDragged = draggedPlacementIndex === index;
-      
+
+      // Convert bar (0-63 sixteenths) to visual pixel position within 16-column grid
+      // Each visual column represents 4 sixteenth notes
+      const visualColumn = Math.floor(placement.bar / 4); // Which column (0-15)
+      const sixteenthWithinColumn = placement.bar % 4; // Which sixteenth within that column (0-3)
+      const positionWithinColumn = sixteenthWithinColumn * (COLUMN_WIDTH / 4); // Pixel offset within column
+      const leftPosition = visualColumn * COLUMN_WIDTH + positionWithinColumn;
+
+      // Center icons at a fixed pixel position regardless of resolution
+      // Target: icon center at leftPosition + SIXTEENTH_WIDTH/2
+      const targetCenter = leftPosition + SIXTEENTH_WIDTH / 2;
+      const centeredLeft = targetCenter - iconWidth / 2;
+
       // Check if playhead is hitting this icon
-      // Playhead position is in continuous steps (0-16)
-      // Icon is at column center: placement.bar + 0.5
-      // Trigger when playhead passes through the icon's center position
-      const iconCenterStep = placement.bar + 0.5;
-      const distance = Math.abs(currentStep - iconCenterStep);
-      const isHit = isPlaying && distance < 0.08; // Tight threshold for center hit
-      
+      // Playhead position is in continuous steps (0-16 quarter notes)
+      // Convert bar (0-63 sixteenths) to quarter note position (0-16)
+      const iconQuarterNotePosition = placement.bar / 4;
+      const distance = Math.abs(currentStep - iconQuarterNotePosition);
+      const isHit = isPlaying && distance < 0.08; // Tight threshold for hit
+
       return (
         <motion.div
           key={index}
@@ -445,9 +568,9 @@ export default function IconSequencerWithDensity({
           }}
           style={{
             position: 'absolute',
-            left: `${placement.bar * COLUMN_WIDTH}px`,
+            left: `${centeredLeft}px`,  // Centered position keeps icons at same visual location
             top: `${row * ROW_HEIGHT}px`,
-            width: `${COLUMN_WIDTH}px`,
+            width: `${iconWidth}px`,  // Variable width based on resolution
             height: `${ROW_HEIGHT}px`,
             cursor: isDragged ? 'grabbing' : 'grab',
             opacity: isDragged ? 0 : 1,
@@ -458,10 +581,10 @@ export default function IconSequencerWithDensity({
             justifyContent: 'center'
           }}
         >
-          <div 
-            style={{ 
-              width: '40px',
-              height: '40px',
+          <div
+            style={{
+              width: `${iconVisualSize}px`,
+              height: `${iconVisualSize}px`,
               pointerEvents: 'none'
             }}
           >
@@ -475,20 +598,24 @@ export default function IconSequencerWithDensity({
   // Render drag ghost
   const renderDragGhost = () => {
     if (!dragGhost || !sequencerRef.current) return null;
-    
+
     const sound = SOUND_ICONS.find(s => s.id === dragGhost.soundId);
     if (!sound) return null;
-    
+
     const IconComponent = sound.icon;
-    
+
+    // Calculate dynamic size based on current resolution
+    // Use scaledHalfSize to account for the 0.8 transform applied to inner div
+    const { iconVisualSize, scaledHalfSize } = getIconDimensions(resolution);
+
     return (
       <div
         style={{
           position: 'fixed',
-          left: `${dragGhost.x - 16}px`,
-          top: `${dragGhost.y - 16}px`,
-          width: '32px',
-          height: '32px',
+          left: `${dragGhost.x - scaledHalfSize}px`,
+          top: `${dragGhost.y - scaledHalfSize}px`,
+          width: `${iconVisualSize}px`,
+          height: `${iconVisualSize}px`,
           opacity: 0.8,
           pointerEvents: 'none',
           zIndex: 1000
