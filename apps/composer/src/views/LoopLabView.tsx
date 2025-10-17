@@ -10,8 +10,18 @@ import { type Chord } from '../components/chordData';
 import { AudioEngine } from '../audio/AudioEngine';
 import { mapSoundId } from '../audio/soundIdMapper';
 import { midiToNoteName } from '../audio/helpers';
+import { loopsApi } from '../services/loopsApi';
+import { generateUUID } from '../utils/uuid';
+import { formatApiError } from '../utils/errors';
+import type { Loop, ChordCell, IconStep } from '@music/types/schemas';
+import { useToast } from '../components/ToastContext';
+import { useAuth } from '../hooks/useAuth';
 
 export default function LoopLabView() {
+  // Initialize auth token (sets test token to localStorage)
+  useAuth();
+
+  const { showToast } = useToast();
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(120);
   const [selectedSound, setSelectedSound] = useState<string | null>(null);
@@ -25,9 +35,79 @@ export default function LoopLabView() {
   // Store placements from IconSequencerWithDensity
   const [placements, setPlacements] = useState<any[]>([]);
 
+  // Save/Load state
+  const [currentLoopId, setCurrentLoopId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [loopName, setLoopName] = useState('Untitled Loop');
+
   // Audio engine instance
   const audioEngineRef = useRef<AudioEngine | null>(null);
   const scheduledEventsRef = useRef<number[]>([]);
+
+  /**
+   * Serialize current UI state to Loop schema format
+   */
+  const serializeLoop = (): Omit<Loop, 'id' | 'updatedAt'> => {
+    // Convert barChords array to chordProgression with bar indices
+    const chordProgression: ChordCell[] = barChords
+      .map((chord, index) => ({
+        bar: index,
+        chord: chord || 'I', // Default to 'I' if null
+      }))
+      .filter(cell => cell.chord !== null);
+
+    // Convert placements to iconSequence
+    // Note: row field is derived from UI - need to preserve it from placements
+    const iconSequence: IconStep[] = placements.map(p => ({
+      bar: p.bar,
+      row: p.row ?? 0, // Use row from placement or default to 0
+      soundId: p.soundId,
+      velocity: p.velocity / 100, // Convert from 0-100 UI to 0-1 API
+      pitch: p.pitch,
+    }));
+
+    return {
+      name: loopName,
+      bars: 4, // Fixed to 4 bars for now
+      color: '#FFD11A', // Default color
+      bpm,
+      chordProgression,
+      iconSequence,
+      schemaVersion: 1,
+    };
+  };
+
+  /**
+   * Deserialize Loop schema format to UI state
+   */
+  const deserializeLoop = (loop: Loop) => {
+    setLoopName(loop.name);
+    setBpm(loop.bpm);
+
+    // Convert chordProgression to barChords array
+    const newBarChords: (Chord | null)[] = Array(4).fill(null);
+    loop.chordProgression.forEach(cell => {
+      if (cell.bar >= 0 && cell.bar < 4) {
+        newBarChords[cell.bar] = cell.chord as Chord;
+      }
+    });
+    setBarChords(newBarChords);
+
+    // Convert iconSequence to placements
+    const newPlacements = loop.iconSequence.map(step => ({
+      bar: step.bar,
+      row: step.row,
+      soundId: step.soundId,
+      velocity: step.velocity * 100, // Convert from 0-1 API to 0-100 UI
+      pitch: step.pitch,
+    }));
+    setPlacements(newPlacements);
+
+    setCurrentLoopId(loop.id);
+    setLastSaved(new Date(loop.updatedAt));
+  };
 
   const handlePlayPause = async () => {
     if (!audioEngineRef.current) {
@@ -57,8 +137,50 @@ export default function LoopLabView() {
     }
   };
 
-  const handleSave = () => {
-    console.log('Saving loop to pad...');
+  const handleSave = async () => {
+    // Prevent concurrent saves
+    if (isSaving) return;
+
+    // Stop playback before saving
+    if (isPlaying) {
+      handlePlayPause();
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const loopData = serializeLoop();
+
+      let savedLoop: Loop;
+      if (currentLoopId) {
+        // Update existing loop
+        savedLoop = await loopsApi.updateLoop(currentLoopId, {
+          ...loopData,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Create new loop - backend generates id and updatedAt
+        savedLoop = await loopsApi.createLoop(loopData);
+        setCurrentLoopId(savedLoop.id);
+
+        // Update URL with loopId
+        const url = new URL(window.location.href);
+        url.searchParams.set('loopId', savedLoop.id);
+        window.history.replaceState(null, '', url.toString());
+      }
+
+      setLastSaved(new Date());
+      console.log('Loop saved successfully:', savedLoop.id);
+      showToast('Loop saved successfully!', 'success');
+    } catch (error) {
+      const { message } = formatApiError(error);
+      setSaveError(message);
+      console.error('Save failed:', message);
+      showToast(message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSelectSound = (soundId: string) => {
@@ -185,6 +307,35 @@ export default function LoopLabView() {
       }
     };
   }, []);
+
+  // Load loop from URL query param on mount
+  useEffect(() => {
+    const loadLoopFromUrl = async () => {
+      const url = new URL(window.location.href);
+      const loopId = url.searchParams.get('loopId');
+
+      if (!loopId) {
+        return; // No loopId in URL, start with blank loop
+      }
+
+      try {
+        const loop = await loopsApi.getLoop(loopId);
+        deserializeLoop(loop);
+        console.log('Loop loaded successfully:', loop.id);
+      } catch (error) {
+        const { message } = formatApiError(error);
+        console.error('Failed to load loop:', message);
+        showToast(`Failed to load loop: ${message}`, 'error');
+
+        // Remove invalid loopId from URL
+        const newUrl = new URL(window.location.href);
+        newUrl.searchParams.delete('loopId');
+        window.history.replaceState(null, '', newUrl.toString());
+      }
+    };
+
+    loadLoopFromUrl();
+  }, []); // Run only on mount
 
   return (
     <div

@@ -1,13 +1,22 @@
 import React from 'react'
-import { ComposerGrid } from './components/ComposerGrid'
-import { MacroStrip } from './components/MacroStrip'
-import { Transport } from './components/Transport'
-export default function App(){
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import LoopLabView from './views/LoopLabView'
+import { SongArrangementView } from './views/SongArrangementView'
+import { ToastProvider } from './components/ToastContext'
+
+// Authentication disabled for local development
+// To re-enable: uncomment AuthProvider, useAuth, LoginView, SignupView imports
+// and wrap routes with ProtectedRoute
+
+export default function App() {
   return (
-    <div className="p-4 space-y-4">
-      <Transport/>
-      <MacroStrip/>
-      <ComposerGrid/>
-    </div>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<LoopLabView />} />
+          <Route path="/song" element={<SongArrangementView />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   )
 }

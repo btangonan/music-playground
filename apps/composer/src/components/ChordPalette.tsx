@@ -1,0 +1,115 @@
+import { type Chord } from './chordData';
+import { chordColors } from './chordData';
+
+interface ChordPaletteProps {
+  selectedChord: Chord | null;
+  onChordSelect: (chord: Chord | null) => void;
+  onPresetSelect: (preset: string) => void;
+}
+
+const CHORDS: Chord[] = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'bVII', 'sus', 'dim', '+7'];
+const PRESETS = ['Pop', 'Sad', 'Chill', 'Shoegaze'];
+
+export default function ChordPalette({ selectedChord, onChordSelect, onPresetSelect }: ChordPaletteProps) {
+  const handleChordClick = (chord: Chord) => {
+    if (selectedChord === chord) {
+      onChordSelect(null); // Deselect
+    } else {
+      onChordSelect(chord);
+    }
+  };
+
+  return (
+    <div 
+      className="bg-white border-b border-[rgba(0,0,0,0.1)]"
+      style={{ height: '32px', padding: '0 8px' }}
+    >
+      <div className="flex items-center justify-between h-full">
+        {/* Left: Label + Chord Buttons */}
+        <div className="flex items-center gap-3">
+          <span 
+            className="text-[rgba(0,0,0,0.55)]"
+            style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px', lineHeight: '16px' }}
+          >
+            CHORDS:
+          </span>
+          
+          <div className="flex items-center gap-1">
+            {CHORDS.map((chord) => {
+              const isSelected = selectedChord === chord;
+              const color = chordColors[chord];
+              
+              // Convert hex to rgba - always show color, more saturated when selected
+              const r = parseInt(color.slice(1, 3), 16);
+              const g = parseInt(color.slice(3, 5), 16);
+              const b = parseInt(color.slice(5, 7), 16);
+              const bgColor = isSelected 
+                ? `rgba(${r}, ${g}, ${b}, 0.5)` // 50% opacity when selected
+                : `rgba(${r}, ${g}, ${b}, 0.25)`; // 25% opacity by default
+              
+              return (
+                <button
+                  key={chord}
+                  onClick={() => handleChordClick(chord)}
+                  className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
+                  style={{
+                    width: '32px',
+                    height: '24px',
+                    borderRadius: '8px',
+                    fontFamily: 'Inter',
+                    fontSize: '11px',
+                    fontWeight: isSelected ? 600 : 500,
+                    backgroundColor: bgColor,
+                    cursor: 'pointer',
+                    boxShadow: isSelected ? '0 0 0 2px rgba(0,0,0,0.4)' : 'none'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.boxShadow = '0 0 0 2px rgba(0,0,0,0.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSelected) {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  {chord}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right: Preset Buttons */}
+        <div className="flex items-center gap-1">
+          {PRESETS.map((preset) => (
+            <button
+              key={preset}
+              onClick={() => onPresetSelect(preset)}
+              className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
+              style={{
+                width: '64px',
+                height: '24px',
+                borderRadius: '8px',
+                fontFamily: 'Inter',
+                fontSize: '12px',
+                fontWeight: 500,
+                backgroundColor: 'white',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'white';
+              }}
+            >
+              {preset}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
