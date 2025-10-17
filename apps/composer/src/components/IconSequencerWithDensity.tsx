@@ -51,7 +51,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
   useEffect(() => { onPlacementsChange?.(placements); }, [placements, onPlacementsChange]);
 
-  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number; xWithinCol: number } | null>(null);
+  // UPDATED: store snappedBar for absolute overlay
+  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number; xWithinCol: number; snappedBar: number } | null>(null);
   const [draggedPlacementIndex, setDraggedPlacementIndex] = useState<number | null>(null);
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number; soundId: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -99,7 +100,17 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
     const xWithinCol = x % COLUMN_WIDTH;
-    if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) setHoveredCell({ row, col, xWithinCol });
+
+    // NEW: snappedBar computed exactly like drop (absolute, not relative)
+    const sixteenthWithinCol = Math.floor((xWithinCol + EPS) / SIXTEENTH_WIDTH);
+    const divisor = SNAP_DIVISOR[resolution];
+    const raw = col * 4 + sixteenthWithinCol;
+    const snappedBar = Math.round(raw / divisor) * divisor;
+    const safeSnappedBar = Math.max(0, Math.min(63, snappedBar));
+
+    if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
+      setHoveredCell({ row, col, xWithinCol, snappedBar: safeSnappedBar });
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -177,7 +188,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           const b = parseInt(color.slice(5, 7), 16);
           densityColor = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         }
-        const isHovered = hoveredCell?.row === row && hoveredCell?.col === col;
         // Guides for current mode only
         const subdivisionLines: number[] = [];
         if (resolution === '1/8') subdivisionLines.push(COLUMN_WIDTH / 2);
@@ -187,14 +197,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             <div style={{ position: 'absolute', inset: 0, backgroundColor: barChordColor, pointerEvents: 'none' }} />
             {isDragging && (<div style={{ position: 'absolute', inset: 0, backgroundColor: densityColor, pointerEvents: 'none' }} />)}
             {subdivisionLines.map((xPos, idx) => (<div key={`subdiv-${idx}`} style={{ position: 'absolute', left: `${xPos}px`, top: 0, width: '1px', height: '100%', backgroundColor: 'rgba(0,0,0,0.05)', pointerEvents: 'none' }} />))}
-            {isHovered && isDragging && (() => {
-              const divisor = SNAP_DIVISOR[resolution];
-              const sixteenthWithinCol = Math.floor((hoveredCell!.xWithinCol + EPS) / SIXTEENTH_WIDTH);
-              const coarseStart16 = Math.floor(sixteenthWithinCol / divisor) * divisor;
-              const hoverLeft = coarseStart16 * SIXTEENTH_WIDTH;
-              const hoverWidth = divisor * SIXTEENTH_WIDTH;
-              return (<div style={{ position: 'absolute', left: `${hoverLeft}px`, top: 0, width: `${hoverWidth}px`, height: ROW_HEIGHT, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />);
-            })()}
           </div>
         );
       }
@@ -223,6 +225,18 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     });
   };
 
+  // NEW: single absolute overlay so hover always mirrors drop result
+  const renderHoverOverlay = () => {
+    if (!hoveredCell || !isDragging) return null;
+    const divisor = SNAP_DIVISOR[resolution];
+    const hoverWidth = divisor * SIXTEENTH_WIDTH;
+    const hoverLeft = hoveredCell.snappedBar * SIXTEENTH_WIDTH;
+    const rowTop = hoveredCell.row * ROW_HEIGHT;
+    return (
+      <div style={{ position: 'absolute', left: `${hoverLeft}px`, top: `${rowTop}px`, width: `${hoverWidth}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />
+    );
+  };
+
   const renderDragGhost = () => {
     if (!dragGhost) return null;
     const sound = SOUND_ICONS.find(s => s.id === dragGhost.soundId);
@@ -243,6 +257,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     <div>
       <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
         {renderGrid()}
+        {renderHoverOverlay()}
         {!assignmentMode && renderPlacements()}
         {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#FFD11A', boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)', pointerEvents: 'none', zIndex: 150 }} />)}
       </div>
