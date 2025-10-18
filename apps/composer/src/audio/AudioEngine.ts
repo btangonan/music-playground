@@ -22,30 +22,21 @@ export class AudioEngine {
   async start(): Promise<void> {
     if (this.initialized) return
 
-    // Start Tone.js audio context
     await Tone.start()
 
-    // Create instruments for each icon sound
     for (const sound of Object.values(ICON_SOUNDS)) {
       const instrument = this.createInstrument(sound)
       this.instruments.set(sound.id, instrument)
     }
 
-    // Start transport
     Tone.Transport.start()
     this.initialized = true
   }
 
-  /**
-   * Stop transport
-   */
   stop(): void {
     Tone.Transport.stop()
   }
 
-  /**
-   * Set BPM (tempo)
-   */
   setBPM(bpm: number): void {
     Tone.Transport.bpm.value = bpm
   }
@@ -56,23 +47,22 @@ export class AudioEngine {
    * @param note - Note to play (e.g., 'C4', 'A3')
    * @param time - Time in seconds (or '+0.5' for relative)
    * @param velocity - Volume 0-1
-   * @returns true if scheduled, false if soundId invalid
+   * @param durationSeconds - Optional duration in seconds (defaults to short blip)
    */
-  scheduleNote(soundId: string, note: string, time: number | string, velocity: number): boolean {
+  scheduleNote(soundId: string, note: string, time: number | string, velocity: number, durationSeconds?: number): boolean {
     const instrument = this.instruments.get(soundId)
     if (!instrument) {
       console.warn(`Invalid sound ID: ${soundId}`)
       return false
     }
 
+    const dur = typeof durationSeconds === 'number' && isFinite(durationSeconds) ? Math.max(0.01, durationSeconds) : 0.15
+
     try {
-      // NoiseSynth has a different API - it doesn't accept note parameter
       if (instrument instanceof Tone.NoiseSynth) {
-        // NoiseSynth.triggerAttackRelease(duration, time, velocity)
-        instrument.triggerAttackRelease('8n', time, velocity)
+        instrument.triggerAttackRelease(dur, time, velocity)
       } else {
-        // All other synths: triggerAttackRelease(note, duration, time, velocity)
-        instrument.triggerAttackRelease(note, '8n', time, velocity)
+        instrument.triggerAttackRelease(note, dur, time, velocity)
       }
       return true
     } catch (err) {
@@ -81,25 +71,15 @@ export class AudioEngine {
     }
   }
 
-  /**
-   * Dispose all instruments and clean up
-   */
   dispose(): void {
-    // Clear scheduled events
     Tone.Transport.clear(0)
-
-    // Dispose all instruments
     for (const instrument of this.instruments.values()) {
       instrument.dispose()
     }
-
     this.instruments.clear()
     this.initialized = false
   }
 
-  /**
-   * Create Tone.js instrument from icon sound config
-   */
   private createInstrument(sound: IconSound): Instrument {
     const { synthType, options } = sound.toneConfig
 
@@ -135,13 +115,10 @@ export class AudioEngine {
         instrument = new Tone.PluckSynth(options)
         break
       default:
-        // Fallback to basic synth
         instrument = new Tone.Synth()
     }
 
-    // Route to destination
     instrument.toDestination()
-
     return instrument
   }
 }

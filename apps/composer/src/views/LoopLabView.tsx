@@ -35,20 +35,16 @@ export default function LoopLabView() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioInitializing, setIsAudioInitializing] = useState(false);
 
-  // Store placements from IconSequencerWithDensity
   const [placements, setPlacements] = useState<any[]>([]);
 
-  // Save/Load state
   const [currentLoopId, setCurrentLoopId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [loopName, setLoopName] = useState('Untitled Loop');
 
-  // Grid resolution state
   const [resolution, setResolution] = useState<GridResolution>('1/4');
 
-  // MIDI upload state - store metadata for modal
   const [midiMetadata, setMidiMetadata] = useState<{
     name: string;
     bpm: number;
@@ -57,63 +53,45 @@ export default function LoopLabView() {
   } | null>(null);
   const [showMidiModal, setShowMidiModal] = useState(false);
 
-  // Pitch range for dynamic grid sizing
   const [pitchRange, setPitchRange] = useState<{ min: number; max: number } | null>(null);
 
-  // Quantization configuration: maps resolution to snap divisor
-  const SNAP_DIVISOR = {
-    '1/4': 4,  // Snap to every 4th sixteenth (quarter notes)
-    '1/8': 2,  // Snap to every 2nd sixteenth (eighth notes)
-    '1/16': 1  // Snap to every sixteenth
-  } as const;
-
-  // Quantize bar position to current resolution
+  const SNAP_DIVISOR = { '1/4': 4, '1/8': 2, '1/16': 1 } as const;
   const quantizeBar = (bar: number): number => {
     const divisor = SNAP_DIVISOR[resolution];
     return Math.round(bar / divisor) * divisor;
   };
 
-  // Convert bar position (0-63 sixteenth notes) to Tone.js time format
   const barToToneTime = (bar: number): string => {
-    // bar is 0-63 representing sixteenth notes across 4 bars
-    // Tone.js format: "bar:quarter:sixteenth"
-    const barNum = Math.floor(bar / 16); // Which bar (0-3)
-    const sixteenthInBar = bar % 16; // Sixteenth within bar (0-15)
-    const quarter = Math.floor(sixteenthInBar / 4); // Quarter note (0-3)
-    const sixteenth = sixteenthInBar % 4; // Sixteenth within quarter (0-3)
+    const barNum = Math.floor(bar / 16);
+    const sixteenthInBar = bar % 16;
+    const quarter = Math.floor(sixteenthInBar / 4);
+    const sixteenth = sixteenthInBar % 4;
     return `${barNum}:${quarter}:${sixteenth}`;
   };
 
-  // Audio engine instance
   const audioEngineRef = useRef<AudioEngine | null>(null);
   const scheduledEventsRef = useRef<number[]>([]);
 
-  /**
-   * Serialize current UI state to Loop schema format
-   */
   const serializeLoop = (): Omit<Loop, 'id' | 'updatedAt'> => {
-    // Convert barChords array to chordProgression with bar indices
     const chordProgression: ChordCell[] = barChords
-      .map((chord, index) => ({
-        bar: index,
-        chord: chord || 'I', // Default to 'I' if null
-      }))
+      .map((chord, index) => ({ bar: index, chord: chord || 'I' }))
       .filter(cell => cell.chord !== null);
 
-    // Convert placements to iconSequence
-    // Note: row field is derived from UI - need to preserve it from placements
     const iconSequence: IconStep[] = placements.map(p => ({
       bar: p.bar,
-      row: p.row ?? 0, // Use row from placement or default to 0
+      row: p.row ?? 0,
       soundId: p.soundId,
-      velocity: p.velocity / 100, // Convert from 0-100 UI to 0-1 API
+      velocity: p.velocity / 100,
       pitch: p.pitch,
+      // persist duration if present (back-compat default = 1 in schema)
+      // @ts-ignore: IconStep from schema now supports duration16 optional default
+      duration16: p.duration16 ?? 1
     }));
 
     return {
       name: loopName,
-      bars: 4, // Fixed to 4 bars for now
-      color: '#FFD11A', // Default color
+      bars: 4,
+      color: '#FFD11A',
       bpm,
       chordProgression,
       iconSequence,
@@ -121,29 +99,23 @@ export default function LoopLabView() {
     };
   };
 
-  /**
-   * Deserialize Loop schema format to UI state
-   */
   const deserializeLoop = (loop: Loop) => {
     setLoopName(loop.name);
     setBpm(loop.bpm);
 
-    // Convert chordProgression to barChords array
     const newBarChords: (Chord | null)[] = Array(4).fill(null);
-    loop.chordProgression.forEach(cell => {
-      if (cell.bar >= 0 && cell.bar < 4) {
-        newBarChords[cell.bar] = cell.chord as Chord;
-      }
-    });
+    loop.chordProgression.forEach(cell => { if (cell.bar >= 0 && cell.bar < 4) newBarChords[cell.bar] = cell.chord as Chord; });
     setBarChords(newBarChords);
 
-    // Convert iconSequence to placements
     const newPlacements = loop.iconSequence.map(step => ({
       bar: step.bar,
       row: step.row,
       soundId: step.soundId,
-      velocity: step.velocity * 100, // Convert from 0-1 API to 0-100 UI
+      velocity: step.velocity * 100,
       pitch: step.pitch,
+      // bring duration into UI objects (schema default covers missing)
+      // @ts-ignore tolerate missing during transition
+      duration16: (step as any).duration16 ?? 1
     }));
     setPlacements(newPlacements);
 
@@ -153,7 +125,6 @@ export default function LoopLabView() {
 
   const handlePlayPause = async () => {
     if (!audioEngineRef.current) {
-      // First time: initialize audio engine
       try {
         setIsAudioInitializing(true);
         const engine = new AudioEngine();
@@ -165,101 +136,21 @@ export default function LoopLabView() {
       } catch (err) {
         console.error('Failed to initialize audio:', err);
         setIsAudioInitializing(false);
-        // TODO: Show error to user
       }
     } else {
-      // Toggle playback
       if (!isPlaying) {
         Tone.Transport.start();
         setIsPlaying(true);
       } else {
         Tone.Transport.pause();
-        Tone.Transport.position = 0; // Reset to beginning
-        setCurrentStep(0); // Reset visual playhead
+        Tone.Transport.position = 0;
+        setCurrentStep(0);
         setIsPlaying(false);
       }
     }
   };
 
-  const handleSave = async () => {
-    // Prevent concurrent saves
-    if (isSaving) return;
-
-    // Stop playback before saving
-    if (isPlaying) {
-      handlePlayPause();
-    }
-
-    setIsSaving(true);
-    setSaveError(null);
-
-    try {
-      const loopData = serializeLoop();
-
-      let savedLoop: Loop;
-      if (currentLoopId) {
-        // Update existing loop
-        savedLoop = await loopsApi.updateLoop(currentLoopId, {
-          ...loopData,
-          updatedAt: new Date().toISOString(),
-        });
-      } else {
-        // Create new loop - backend generates id and updatedAt
-        savedLoop = await loopsApi.createLoop(loopData);
-        setCurrentLoopId(savedLoop.id);
-
-        // Update URL with loopId
-        const url = new URL(window.location.href);
-        url.searchParams.set('loopId', savedLoop.id);
-        window.history.replaceState(null, '', url.toString());
-      }
-
-      setLastSaved(new Date());
-      console.log('Loop saved successfully:', savedLoop.id);
-      showToast('Loop saved successfully!', 'success');
-    } catch (error) {
-      const { message } = formatApiError(error);
-      setSaveError(message);
-      console.error('Save failed:', message);
-      showToast(message, 'error');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleSelectSound = (soundId: string) => {
-    setSelectedSound(soundId === selectedSound ? null : soundId);
-  };
-
-  const handleChordSelect = (chord: Chord | null) => {
-    setAssignmentMode(chord);
-  };
-
-  const handlePresetSelect = (preset: string) => {
-    // Preset chord progressions
-    const presets: Record<string, (Chord | null)[]> = {
-      Pop: ['I', 'V', 'vi', 'IV'],
-      Sad: ['vi', 'IV', 'I', 'V'],
-      Chill: ['I', 'iii', 'vi', 'IV'],
-      Shoegaze: ['I', 'bVII', 'IV', 'I']
-    };
-
-    const progression = presets[preset];
-    if (progression) {
-      setBarChords(progression);
-    }
-  };
-
-  const handleBarChordAssign = (barIndex: number, chord: Chord) => {
-    const newBarChords = [...barChords];
-    newBarChords[barIndex] = chord;
-    setBarChords(newBarChords);
-    // Exit assignment mode after assigning
-    setAssignmentMode(null);
-  };
-
   const handlePreviewSound = async (soundId: string) => {
-    // Initialize audio engine if needed
     if (!audioEngineRef.current) {
       try {
         const engine = new AudioEngine();
@@ -271,15 +162,12 @@ export default function LoopLabView() {
         return;
       }
     }
-
-    // Play preview note (C4 - middle C)
     const engineSoundId = mapSoundId(soundId);
     const engine = audioEngineRef.current;
     engine.scheduleNote(engineSoundId, 'C4', '+0', 0.7);
   };
 
   const handlePreviewNote = async (soundId: string, pitch: number) => {
-    // Initialize audio engine if needed
     if (!audioEngineRef.current) {
       try {
         const engine = new AudioEngine();
@@ -291,8 +179,6 @@ export default function LoopLabView() {
         return;
       }
     }
-
-    // Play preview note with actual pitch
     const engineSoundId = mapSoundId(soundId);
     const note = midiToNoteName(pitch);
     const engine = audioEngineRef.current;
@@ -311,287 +197,94 @@ export default function LoopLabView() {
 
   const handlePlacementsLoaded = (placements: any[], metadata: { name: string; bpm: number; noteCount: number }) => {
     setPlacements(placements);
-
-    // Store enriched metadata
-    setMidiMetadata({
-      name: metadata.name,
-      bpm: metadata.bpm,
-      iconCount: placements.length,
-      noteCount: metadata.noteCount
-    });
-
-    // Calculate pitch range from placements
+    setMidiMetadata({ name: metadata.name, bpm: metadata.bpm, iconCount: placements.length, noteCount: metadata.noteCount });
     if (placements.length > 0) {
       const pitches = placements.map(p => p.pitch);
-      const minPitch = Math.min(...pitches);
-      const maxPitch = Math.max(...pitches);
-      setPitchRange({ min: minPitch, max: maxPitch });
-    } else {
-      setPitchRange(null); // Reset if no placements
-    }
-
+      setPitchRange({ min: Math.min(...pitches), max: Math.max(...pitches) });
+    } else { setPitchRange(null); }
     showToast(`MIDI loaded: ${placements.length} icons added to grid`, 'success');
   };
 
-  const handleSyncBpmToMidi = () => {
-    if (midiMetadata) {
-      setBpm(midiMetadata.bpm);
-      showToast(`BPM synced to ${midiMetadata.bpm}`, 'success');
-      setShowMidiModal(false); // Close modal after sync
-    }
+  const handleSyncBpmToMidi = () => { if (midiMetadata) { setBpm(midiMetadata.bpm); showToast(`BPM synced to ${midiMetadata.bpm}`, 'success'); setShowMidiModal(false); } };
+
+  useEffect(() => { if (audioEngineRef.current) { audioEngineRef.current.setBPM(bpm); } }, [bpm]);
+
+  // helper: sixteenths to seconds at current BPM
+  const sixteenthToSeconds = (count: number, bpmVal: number) => {
+    const bps = bpmVal / 60;
+    const secPerSixteenth = 1 / (bps * 4);
+    return count * secPerSixteenth;
   };
 
-  // BPM synchronization
   useEffect(() => {
-    if (audioEngineRef.current) {
-      audioEngineRef.current.setBPM(bpm);
-    }
-  }, [bpm]);
-
-  // Note scheduling system
-  useEffect(() => {
-    if (!isPlaying || !audioEngineRef.current || placements.length === 0) {
-      return;
-    }
-
+    if (!isPlaying || !audioEngineRef.current || placements.length === 0) { return; }
     const engine = audioEngineRef.current;
 
-    // Clear previous scheduled events
     Tone.Transport.cancel();
     scheduledEventsRef.current = [];
 
-    // Schedule all notes in the loop
     placements.forEach((placement) => {
       const engineSoundId = mapSoundId(placement.soundId);
       const note = midiToNoteName(placement.pitch);
-
-      // Convert placement.bar (0-63 sixteenth notes) to Tone.js time format
       const time = barToToneTime(placement.bar);
 
-      // Schedule note with Tone.js Transport
+      const start16 = placement.bar;
+      const rawLen16 = placement.duration16 ?? 1;
+      const end16 = Math.min(64, start16 + rawLen16);
+      const len16 = Math.max(1, end16 - start16);
+      const durSeconds = sixteenthToSeconds(len16, bpm);
+
       const eventId = Tone.Transport.schedule((scheduleTime) => {
-        engine.scheduleNote(
-          engineSoundId,
-          note,
-          scheduleTime,
-          placement.velocity / 100 // Normalize to 0-1
-        );
+        engine.scheduleNote(engineSoundId, note, scheduleTime, placement.velocity / 100, durSeconds);
       }, time);
 
       scheduledEventsRef.current.push(eventId as any);
     });
 
-    // Set up loop: 4 measures (4 bars) in 4/4 time
     Tone.Transport.loop = true;
-    Tone.Transport.loopEnd = '4m'; // 4 measures = 4 bars
+    Tone.Transport.loopEnd = '4m';
 
-  }, [isPlaying, placements]);
+  }, [isPlaying, placements, bpm]);
 
-  // Playhead animation - synchronized with Tone.Transport
-  useEffect(() => {
-    if (!isPlaying) {
-      return;
-    }
+  useEffect(() => { if (!isPlaying) { return; } const animate = () => { const transportSeconds = Tone.Transport.seconds; const beatsPerSecond = bpm / 60; const currentBeat = (transportSeconds * beatsPerSecond) % 16; setCurrentStep(currentBeat); if (isPlaying) { requestAnimationFrame(animate); } }; const animationFrame = requestAnimationFrame(animate); return () => { cancelAnimationFrame(animationFrame); }; }, [isPlaying, bpm]);
 
-    const animate = () => {
-      // Use Tone.Transport.seconds for precise synchronization
-      // Transport seconds represents current playback time
-      const transportSeconds = Tone.Transport.seconds;
+  useEffect(() => { const handleKeyPress = (event: KeyboardEvent) => { if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { return; } if (event.code === 'Space') { event.preventDefault(); handlePlayPause(); } }; window.addEventListener('keydown', handleKeyPress); return () => window.removeEventListener('keydown', handleKeyPress); }, [isPlaying]);
 
-      // Calculate beats per second from BPM
-      const beatsPerSecond = bpm / 60;
+  useEffect(() => { return () => { if (audioEngineRef.current) { audioEngineRef.current.stop(); audioEngineRef.current.dispose(); } }; }, []);
 
-      // Calculate current beat position (0-16 across 4 bars)
-      const currentBeat = (transportSeconds * beatsPerSecond) % 16;
-
-      setCurrentStep(currentBeat);
-
-      if (isPlaying) {
-        requestAnimationFrame(animate);
-      }
-    };
-
-    const animationFrame = requestAnimationFrame(animate);
-
-    return () => {
-      cancelAnimationFrame(animationFrame);
-    };
-  }, [isPlaying, bpm]);
-
-  // Spacebar shortcut for play/pause
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      // Only trigger if not typing in an input field
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
-        return;
-      }
-
-      if (event.code === 'Space') {
-        event.preventDefault();
-        handlePlayPause();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [isPlaying]); // Include isPlaying to ensure handlePlayPause closure is current
-
-  // Cleanup on component unmount
-  useEffect(() => {
-    return () => {
-      if (audioEngineRef.current) {
-        audioEngineRef.current.stop();
-        audioEngineRef.current.dispose();
-      }
-    };
-  }, []);
-
-  // Load loop from URL query param on mount
-  useEffect(() => {
-    const loadLoopFromUrl = async () => {
-      const url = new URL(window.location.href);
-      const loopId = url.searchParams.get('loopId');
-
-      if (!loopId) {
-        return; // No loopId in URL, start with blank loop
-      }
-
-      try {
-        const loop = await loopsApi.getLoop(loopId);
-        deserializeLoop(loop);
-        console.log('Loop loaded successfully:', loop.id);
-      } catch (error) {
-        const { message } = formatApiError(error);
-        console.error('Failed to load loop:', message);
-        showToast(`Failed to load loop: ${message}`, 'error');
-
-        // Remove invalid loopId from URL
-        const newUrl = new URL(window.location.href);
-        newUrl.searchParams.delete('loopId');
-        window.history.replaceState(null, '', newUrl.toString());
-      }
-    };
-
-    loadLoopFromUrl();
-  }, []); // Run only on mount
+  useEffect(() => { const loadLoopFromUrl = async () => { const url = new URL(window.location.href); const loopId = url.searchParams.get('loopId'); if (!loopId) { return; } try { const loop = await loopsApi.getLoop(loopId); deserializeLoop(loop); console.log('Loop loaded successfully:', loop.id); } catch (error) { const { message } = formatApiError(error); console.error('Failed to load loop:', message); showToast(`Failed to load loop: ${message}`, 'error'); const newUrl = new URL(window.location.href); newUrl.searchParams.delete('loopId'); window.history.replaceState(null, '', newUrl.toString()); } }; loadLoopFromUrl(); }, []);
 
   return (
-    <div
-      className="min-h-screen p-6"
-      style={{
-        backgroundColor: '#FFFFFF',
-        fontFamily: 'Inter, system-ui, sans-serif'
-      }}
-    >
+    <div className="min-h-screen p-6" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="max-w-[900px] mx-auto">
-        {/* App Title */}
         <div className="text-center mb-6">
-          <h1
-            style={{
-              fontFamily: 'Inter',
-              fontWeight: 700,
-              fontSize: '32px',
-              marginBottom: '4px'
-            }}
-          >
+          <h1 style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '32px', marginBottom: '4px' }}>
             Loop Lab
           </h1>
-          <p
-            className="text-[rgba(0,0,0,0.55)]"
-            style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '14px' }}
-          >
+          <p className="text-[rgba(0,0,0,0.55)]" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '14px' }}>
             Loop Builder with Smart Chords
           </p>
         </div>
 
-        {/* Top Bar - 60px (outside main interface) */}
-        <TopBar
-          isPlaying={isPlaying}
-          bpm={bpm}
-          onPlayPause={handlePlayPause}
-          onSave={handleSave}
-          onBpmChange={setBpm}
-          selectedKey={selectedKey}
-          onKeyChange={setSelectedKey}
-          resolution={resolution}
-          onResolutionChange={setResolution}
-          midiMetadata={midiMetadata}
-          onMidiUpload={handlePlacementsLoaded}
-          onShowMidiModal={() => setShowMidiModal(true)}
-          ensureAudioEngine={ensureAudioEngine}
-        />
+        <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
 
-        {/* Main Interface Container - 450px total */}
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
-          {/* Chord Palette Strip - 32px */}
-          <ChordPalette
-            selectedChord={assignmentMode}
-            onChordSelect={handleChordSelect}
-            onPresetSelect={handlePresetSelect}
-          />
-
-          {/* Icon Gallery - 48px */}
+          <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
           <div className="flex items-center justify-center" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px' }}>
-            <IconGallery
-              selectedSound={selectedSound}
-              onSelectSound={handleSelectSound}
-              onDragStart={setDraggingSound}
-              onDragEnd={() => setDraggingSound(null)}
-              onPreviewSound={handlePreviewSound}
-            />
+            <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
           </div>
-
-          {/* Piano Roll + Density - 360px + Step Numbers 10px */}
           <div className="px-4 pb-4 pt-0 flex flex-col items-center">
-            {/* Chord Labels - shows which chord is assigned to each bar */}
-            <div className="mb-2">
-              <ChordLabels barChords={barChords} />
-            </div>
-
-            <IconSequencerWithDensity
-              selectedSound={selectedSound}
-              selectedKey={selectedKey}
-              draggingSound={draggingSound}
-              barChords={barChords}
-              assignmentMode={assignmentMode}
-              onBarChordAssign={handleBarChordAssign}
-              currentStep={currentStep}
-              isPlaying={isPlaying}
-              placements={placements}
-              onPlacementsChange={setPlacements}
-              onPreviewNote={handlePreviewNote}
-              resolution={resolution}
-              quantizeBar={quantizeBar}
-              pitchRange={pitchRange}
-            />
-
-            {/* Step Numbers - 10px */}
-            <div className="mt-2">
-              <StepNumbers />
-            </div>
+            <div className="mb-2"><ChordLabels barChords={barChords} /></div>
+            <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} pitchRange={pitchRange} />
+            <div className="mt-2"><StepNumbers /></div>
           </div>
         </div>
 
-        {/* Instructions - centered below panel */}
-        <p
-          className="text-[rgba(0,0,0,0.4)] mt-3 italic text-center"
-          style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}
-        >
-          {assignmentMode
-            ? `Click a bar to assign chord "${assignmentMode}"`
-            : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
+        <p className="text-[rgba(0,0,0,0.4)] mt-3 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
+          {assignmentMode ? `Click a bar to assign chord "${assignmentMode}"` : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
         </p>
 
-        {/* MIDI Info Modal */}
-        {midiMetadata && (
-          <MidiInfoModal
-            isOpen={showMidiModal}
-            onClose={() => setShowMidiModal(false)}
-            metadata={midiMetadata}
-            currentBpm={bpm}
-            onSyncBpm={handleSyncBpmToMidi}
-          />
-        )}
+        {midiMetadata && (<MidiInfoModal isOpen={showMidiModal} onClose={() => setShowMidiModal(false)} metadata={midiMetadata} currentBpm={bpm} onSyncBpm={handleSyncBpmToMidi} />)}
       </div>
     </div>
   );
