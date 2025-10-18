@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
-import ChordPalette from './ChordPalette';
 
 interface IconPlacement {
   soundId: string;
@@ -440,8 +439,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div className="flex flex-row">
-      {/* Left sidebar: Up arrow + Chord buttons + Down arrow */}
-      <div className="flex flex-col items-center justify-between mr-2" style={{ height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }}>
+      {/* Left sidebar: Up arrow + Down arrow aligned with sequencer edges */}
+      <div className="flex flex-col items-center justify-between mr-2" style={{ height: `${ROW_HEIGHT * TOTAL_SEMITONES}px` }}>
         {/* Octave Up */}
         <button
           onClick={() => setOctaveOffset(o => Math.min(o + 1, 3))}
@@ -465,18 +464,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         >
           ↑
         </button>
-
-        {/* Chord buttons in between */}
-        {onChordSelect && onPresetSelect && (
-          <div className="flex-1 flex items-center">
-            <ChordPalette
-              selectedChord={assignmentMode}
-              onChordSelect={onChordSelect}
-              onPresetSelect={onPresetSelect}
-              layout="vertical"
-            />
-          </div>
-        )}
 
         {/* Octave Down */}
         <button

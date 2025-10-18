@@ -72,7 +72,7 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
   // Horizontal layout (original)
   return (
     <div
-      className="bg-white border-b border-[rgba(0,0,0,0.1)]"
+      className="bg-white"
       style={{ height: '32px', padding: '0 8px' }}
     >
       <div className="flex items-center justify-between h-full">
