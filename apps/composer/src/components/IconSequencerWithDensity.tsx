@@ -52,7 +52,7 @@ const BASE_SCALE = 0.8;
 const BAR_HEIGHT = 12;  // Bar for duration visualization
 
 // Debug flag - set to true to enable console logs and visual debug overlays
-const DEBUG = false;
+const DEBUG = true;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
   const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
@@ -83,9 +83,93 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const handlePlacementDragStart = (e: React.DragEvent, index: number) => { e.stopPropagation(); setDraggedPlacementIndex(index); setIsDragging(true); const p = placements[index]; setDragGhost({ x: e.clientX, y: e.clientY, soundId: p.soundId }); e.dataTransfer.effectAllowed = 'copyMove'; e.dataTransfer.setData('placementIndex', String(index)); e.dataTransfer.setData('soundId', p.soundId); makeCenteredDragImage(e); };
   const handleIconDoubleClick = (e: React.MouseEvent, index: number) => { e.stopPropagation(); const updated = placements.filter((_, i) => i !== index); setPlacements(updated); };
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); if (!outerWrapperRef.current) return; const rect = outerWrapperRef.current.getBoundingClientRect(); let x = e.clientX - rect.left - WRAPPER_PADDING; let y = e.clientY - rect.top - WRAPPER_PADDING; const maxX = COLUMN_WIDTH * TIME_STEPS; const maxY = ROW_HEIGHT * TOTAL_SEMITONES; x = Math.min(Math.max(x, 0), maxX); y = Math.min(Math.max(y, 0), maxY); const col = Math.floor(x / COLUMN_WIDTH); const row = Math.floor(y / ROW_HEIGHT); const divisor = SNAP_DIVISOR[resolution]; const absoluteRawBar = x / SIXTEENTH_WIDTH; const snappedBar = Math.floor(absoluteRawBar / divisor) * divisor; const finalSnappedBar = Math.max(0, Math.min(63, snappedBar)); if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) { setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: finalSnappedBar }); } const soundId = dragGhost?.soundId || draggingSound; if (soundId) { setDragGhost({ x: e.clientX, y: e.clientY, soundId }); if (!isDragging) setIsDragging(true); } };
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!outerWrapperRef.current) return;
 
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!outerWrapperRef.current) return; const rect = outerWrapperRef.current.getBoundingClientRect(); let x = e.clientX - rect.left - WRAPPER_PADDING; let y = e.clientY - rect.top - WRAPPER_PADDING; const maxX = COLUMN_WIDTH * TIME_STEPS; const maxY = ROW_HEIGHT * TOTAL_SEMITONES; x = Math.min(Math.max(x, 0), maxX); y = Math.min(Math.max(y, 0), maxY); const col = Math.floor(x / COLUMN_WIDTH); const row = Math.floor(y / ROW_HEIGHT); const divisor = SNAP_DIVISOR[resolution]; const absoluteRawBar = x / SIXTEENTH_WIDTH; const snappedBar = Math.floor(absoluteRawBar / divisor) * divisor; const finalSnappedBar = Math.max(0, Math.min(63, snappedBar)); const pitch = topMidi - row; const isDuplicating = e.metaKey || e.altKey; const placementIndexStr = e.dataTransfer.getData('placementIndex'); if (placementIndexStr) { const placementIndex = parseInt(placementIndexStr); if (isDuplicating) { const original = placements[placementIndex]; const np: IconPlacement = { ...original, bar: finalSnappedBar, pitch }; setPlacements([...placements, np]); onPreviewNote?.(np.soundId, pitch); } else { const up = [...placements]; up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch }; setPlacements(up); onPreviewNote?.(up[placementIndex].soundId, pitch); } setDraggedPlacementIndex(null); } else { const soundId = e.dataTransfer.getData('soundId'); if (!soundId) return; const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 }; setPlacements([...placements, np]); onPreviewNote?.(soundId, pitch); } setHoveredCell(null); setIsDragging(false); setDragGhost(null); };
+    const rect = outerWrapperRef.current.getBoundingClientRect();
+    let x = e.clientX - rect.left - WRAPPER_PADDING;
+    let y = e.clientY - rect.top - WRAPPER_PADDING;
+    const maxX = COLUMN_WIDTH * TIME_STEPS;
+    const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
+    x = Math.min(Math.max(x, 0), maxX);
+    y = Math.min(Math.max(y, 0), maxY);
+
+    const col = Math.floor(x / COLUMN_WIDTH);
+    const row = Math.floor(y / ROW_HEIGHT);
+    const divisor = SNAP_DIVISOR[resolution];
+
+    // Snap to grid: use the cell the mouse is currently IN (floor-based snapping)
+    // Icon lands at the LEFT EDGE of the cell containing the mouse
+    const cellInSixteenths = Math.floor(x / SIXTEENTH_WIDTH);
+    const snappedBar = Math.floor(cellInSixteenths / divisor) * divisor;
+    const finalSnappedBar = Math.max(0, Math.min(63, snappedBar));
+
+    if (DEBUG && resolution === '1/16') {
+      console.log('🔵 DRAG_OVER:', { x, cellInSixteenths, divisor, snappedBar, finalSnappedBar, resolution });
+    }
+
+    if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
+      setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: finalSnappedBar });
+    }
+
+    const soundId = dragGhost?.soundId || draggingSound;
+    if (soundId) {
+      setDragGhost({ x: e.clientX, y: e.clientY, soundId });
+      if (!isDragging) setIsDragging(true);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!outerWrapperRef.current || !hoveredCell) return;
+
+    // Use the EXACT position from the hover state - don't recalculate!
+    const finalSnappedBar = hoveredCell.snappedBar;
+    const row = hoveredCell.row;
+
+    if (DEBUG && resolution === '1/16') {
+      const renderX = finalSnappedBar * SIXTEENTH_WIDTH;
+      console.log('🟢 DROP:', {
+        usingHoveredCell: true,
+        hoveredBar: hoveredCell.snappedBar,
+        finalSnappedBar,
+        renderX,
+        resolution
+      });
+    }
+
+    const pitch = topMidi - row;
+    const isDuplicating = e.metaKey || e.altKey;
+    const placementIndexStr = e.dataTransfer.getData('placementIndex');
+
+    if (placementIndexStr) {
+      const placementIndex = parseInt(placementIndexStr);
+      if (isDuplicating) {
+        const original = placements[placementIndex];
+        const np: IconPlacement = { ...original, bar: finalSnappedBar, pitch };
+        setPlacements([...placements, np]);
+        onPreviewNote?.(np.soundId, pitch);
+      } else {
+        const up = [...placements];
+        up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch };
+        setPlacements(up);
+        onPreviewNote?.(up[placementIndex].soundId, pitch);
+      }
+      setDraggedPlacementIndex(null);
+    } else {
+      const soundId = e.dataTransfer.getData('soundId');
+      if (!soundId) return;
+      const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 };
+      setPlacements([...placements, np]);
+      onPreviewNote?.(soundId, pitch);
+    }
+
+    setHoveredCell(null);
+    setIsDragging(false);
+    setDragGhost(null);
+  };
 
   const handleResizeStart = (e: React.MouseEvent, index: number) => {
     e.stopPropagation();
@@ -196,7 +280,16 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const distance = Math.abs(currentStep - iconQuarterNotePosition);
       const isHit = isPlaying && distance < 0.08;
 
-      if (DEBUG) { console.log(`📍 BLOCK ${index}:`, { bar: p.bar, dur: p.duration16 ?? 1, startX, widthPx, barWidth, blockTop, rowTop }); }
+      if (DEBUG && resolution === '1/16') {
+        console.log(`📍 ICON RENDER ${index}:`, {
+          bar: p.bar,
+          dur: p.duration16 ?? 1,
+          startX,
+          widthPx,
+          SIXTEENTH_WIDTH,
+          calculation: `${p.bar} * ${SIXTEENTH_WIDTH} = ${startX}`
+        });
+      }
 
       return (
         <div
@@ -214,33 +307,37 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             zIndex: 200
           }}
         >
-          {/* Icon fixed at left */}
-          <div style={{
-            position: 'absolute',
-            left: 0,
-            top: 0,
-            width: `${ICON_BOX}px`,
-            height: `${ICON_BOX}px`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            <motion.div
-              animate={{ scale: isHit ? BASE_SCALE * 1.3 : BASE_SCALE }}
-              transition={{ type: 'spring', stiffness: 600, damping: 20 }}
-              style={{
-                width: `${ICON_BOX}px`,
-                height: `${ICON_BOX}px`,
-                transformOrigin: 'center',
-                pointerEvents: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <IconComponent />
-            </motion.div>
-          </div>
+          {/* Icon fixed at left - offset to compensate for SVG internal centering */}
+          <motion.div
+            animate={{ scale: isHit ? 1.1 : 1.0 }}
+            transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+            style={{
+              position: 'absolute',
+              left: '-6px', // Shift left by ~6px to align icon visual with grid
+              top: `${(BLOCK_HEIGHT - ICON_BOX) / 2}px`,
+              width: `${ICON_BOX}px`,
+              height: `${ICON_BOX}px`,
+              transformOrigin: 'left center',
+              pointerEvents: 'none',
+              backgroundColor: DEBUG ? 'rgba(0, 255, 0, 0.2)' : 'transparent'
+            }}
+          >
+            <IconComponent />
+          </motion.div>
+
+          {/* Debug marker - shows exact left edge of container */}
+          {DEBUG && (
+            <div style={{
+              position: 'absolute',
+              left: 0,
+              top: 0,
+              width: '2px',
+              height: `${BLOCK_HEIGHT}px`,
+              backgroundColor: 'red',
+              pointerEvents: 'none',
+              zIndex: 10
+            }} />
+          )}
 
           {/* Duration bar trailing to the right - only show when resizing or duration > default */}
           {(resizingPlacement?.index === index || barWidth > 0) && (
@@ -285,12 +382,23 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const renderHoverOverlay = () => {
     if (!hoveredCell || !isDragging) return null;
     const divisor = SNAP_DIVISOR[resolution];
-    const hoverWidth = divisor * SIXTEENTH_WIDTH;
+    const hoverWidth = divisor * SIXTEENTH_WIDTH;  // Grid cell width based on resolution
     const cellStartBar = hoveredCell.snappedBar;
     const iconLeftX = cellStartBar * SIXTEENTH_WIDTH;
     const rowTop = hoveredCell.row * ROW_HEIGHT;
 
-    return (<div style={{ position: 'absolute', left: `${iconLeftX}px`, top: `${rowTop}px`, width: `${hoverWidth}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />);
+    if (DEBUG && resolution === '1/16') {
+      console.log('📦 HOVER:', { cellStartBar, iconLeftX, hoverWidth, divisor, SIXTEENTH_WIDTH });
+    }
+
+    return (
+      <>
+        {/* Target cell highlight */}
+        <div style={{ position: 'absolute', left: `${iconLeftX}px`, top: `${rowTop}px`, width: `${hoverWidth}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'rgba(142,225,255,0.3)', border: '2px solid rgba(0,0,0,0.25)', pointerEvents: 'none', zIndex: 50 }} />
+        {/* Icon preview outline (40px wide) */}
+        {DEBUG && <div style={{ position: 'absolute', left: `${iconLeftX}px`, top: `${rowTop}px`, width: `${ICON_BOX}px`, height: `${ROW_HEIGHT}px`, backgroundColor: 'transparent', border: '2px dashed rgba(255,0,0,0.5)', pointerEvents: 'none', zIndex: 51 }} />}
+      </>
+    );
   };
 
   const renderDragGhost = () => {
