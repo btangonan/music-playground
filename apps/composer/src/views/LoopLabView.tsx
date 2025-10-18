@@ -210,6 +210,11 @@ export default function LoopLabView() {
         audioEngineRef.current = engine;
         engine.setBPM(bpm);
         setIsAudioInitializing(false);
+
+        // Reset playhead to beginning before first play
+        Tone.Transport.position = 0;
+        setCurrentStep(0);
+        Tone.Transport.start();
         setIsPlaying(true);
       } catch (err) {
         console.error('Failed to initialize audio:', err);
@@ -217,6 +222,9 @@ export default function LoopLabView() {
       }
     } else {
       if (!isPlaying) {
+        // Reset playhead to beginning before playing
+        Tone.Transport.position = 0;
+        setCurrentStep(0);
         Tone.Transport.start();
         setIsPlaying(true);
       } else {
