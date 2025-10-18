@@ -415,6 +415,30 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div>
+      {/* Bar numbers - inside sequencer at top */}
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
+        <div style={{
+          width: `${COLUMN_WIDTH * TIME_STEPS}px`,
+          display: 'flex',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: '11px',
+          fontWeight: 500,
+          color: 'rgba(0,0,0,0.4)'
+        }}>
+          {[1, 2, 3, 4].map(barNum => (
+            <div
+              key={barNum}
+              style={{
+                width: `${COLUMN_WIDTH * STEPS_PER_BAR}px`,
+                textAlign: 'center'
+              }}
+            >
+              {barNum}
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div ref={outerWrapperRef} className="relative flex items-center justify-center" style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
         {/* Octave Up button - upper left margin within sequencer bounds */}
         <button
@@ -465,6 +489,35 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           {renderHoverOverlay()}
           {!assignmentMode && renderPlacements()}
           {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#FFD11A', boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)', pointerEvents: 'none', zIndex: 150 }} />)}
+
+          {/* Clickable bar overlays for chord assignment mode */}
+          {assignmentMode && (
+            <>
+              {[0, 1, 2, 3].map(barIndex => (
+                <div
+                  key={`bar-overlay-${barIndex}`}
+                  onClick={(e) => handleBarClick(e, barIndex)}
+                  style={{
+                    position: 'absolute',
+                    left: `${barIndex * STEPS_PER_BAR * COLUMN_WIDTH}px`,
+                    top: 0,
+                    width: `${STEPS_PER_BAR * COLUMN_WIDTH}px`,
+                    height: '100%',
+                    cursor: 'pointer',
+                    zIndex: 250,
+                    // Subtle visual feedback on hover
+                    backgroundColor: 'transparent'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                />
+              ))}
+            </>
+          )}
         </div>
       </div>
       {renderDragGhost()}

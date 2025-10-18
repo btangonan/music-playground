@@ -370,9 +370,8 @@ export default function LoopLabView() {
             <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
           </div>
           <div className="px-4 pb-4 pt-0 flex flex-col items-center">
-            <div className="mb-2"><ChordLabels barChords={barChords} /></div>
             <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} pitchRange={pitchRange} />
-            <div className="mt-2"><StepNumbers /></div>
+            <div className="mt-2"><ChordLabels barChords={barChords} /></div>
           </div>
         </div>
 
