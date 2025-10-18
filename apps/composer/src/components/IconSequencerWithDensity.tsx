@@ -307,13 +307,51 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, padding: 8, backgroundColor: 'rgba(0,0,0,0.05)', borderRadius: 8 }}>
-        <button onClick={() => setOctaveOffset(o => Math.max(o - 1, -3))} disabled={octaveOffset <= -3} style={{ padding: '4px 12px', opacity: octaveOffset > -3 ? 1 : 0.5 }}>↓ Octave</button>
-        <div style={{ fontFamily: 'monospace', fontSize: 14 }}>Range: C{3 + octaveOffset} to B{5 + octaveOffset}</div>
-        <button onClick={() => setOctaveOffset(o => Math.min(o + 1, 3))} disabled={octaveOffset >= 3} style={{ padding: '4px 12px', opacity: octaveOffset < 3 ? 1 : 0.5 }}>↑ Octave</button>
-      </div>
-
       <div ref={outerWrapperRef} className="relative flex items-center justify-center" style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
+        {/* Octave Up button - upper left margin within sequencer bounds */}
+        <button
+          onClick={() => setOctaveOffset(o => Math.min(o + 1, 3))}
+          disabled={octaveOffset >= 3}
+          style={{
+            position: 'absolute',
+            left: '-25px',
+            top: `${WRAPPER_PADDING + 10}px`,
+            fontSize: '16px',
+            opacity: 1,
+            cursor: octaveOffset < 3 ? 'pointer' : 'not-allowed',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            color: '#000000',
+            zIndex: 100
+          }}
+          title={`Octave Up (C${3 + octaveOffset} to B${5 + octaveOffset})`}
+        >
+          ↑
+        </button>
+
+        {/* Octave Down button - lower left margin within sequencer bounds */}
+        <button
+          onClick={() => setOctaveOffset(o => Math.max(o - 1, -3))}
+          disabled={octaveOffset <= -3}
+          style={{
+            position: 'absolute',
+            left: '-25px',
+            bottom: `${WRAPPER_PADDING + 10}px`,
+            fontSize: '16px',
+            opacity: 1,
+            cursor: octaveOffset > -3 ? 'pointer' : 'not-allowed',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            color: '#000000',
+            zIndex: 100
+          }}
+          title={`Octave Down (C${3 + octaveOffset} to B${5 + octaveOffset})`}
+        >
+          ↓
+        </button>
+
         <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }}>
           {renderGrid()}
           {renderHoverOverlay()}
