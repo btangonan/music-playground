@@ -415,30 +415,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div>
-      {/* Bar numbers - inside sequencer at top */}
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
-        <div style={{
-          width: `${COLUMN_WIDTH * TIME_STEPS}px`,
-          display: 'flex',
-          fontFamily: 'Inter, system-ui, sans-serif',
-          fontSize: '11px',
-          fontWeight: 500,
-          color: 'rgba(0,0,0,0.4)'
-        }}>
-          {[1, 2, 3, 4].map(barNum => (
-            <div
-              key={barNum}
-              style={{
-                width: `${COLUMN_WIDTH * STEPS_PER_BAR}px`,
-                textAlign: 'center'
-              }}
-            >
-              {barNum}
-            </div>
-          ))}
-        </div>
-      </div>
-
       <div ref={outerWrapperRef} className="relative flex items-center justify-center" style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
         {/* Octave Up button - upper left margin within sequencer bounds */}
         <button
