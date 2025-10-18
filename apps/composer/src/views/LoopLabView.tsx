@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import TopBar from '../components/TopBar';
 import ChordPalette from '../components/ChordPalette';
+import OctaveControls from '../components/OctaveControls';
 import IconGallery from '../components/IconGallery';
 import IconSequencerWithDensity from '../components/IconSequencerWithDensity';
 import StepNumbers from '../components/StepNumbers';
@@ -35,8 +36,14 @@ export default function LoopLabView() {
   const [assignmentMode, setAssignmentMode] = useState<Chord | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [isAudioInitializing, setIsAudioInitializing] = useState(false);
+  const [octaveOffset, setOctaveOffset] = useState(0);
 
   const [placements, setPlacements] = useState<any[]>([]);
+
+  // Keep ref in sync with placements state for immediate access during scheduling
+  useEffect(() => {
+    placementsRef.current = placements;
+  }, [placements]);
 
   const [currentLoopId, setCurrentLoopId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -72,6 +79,7 @@ export default function LoopLabView() {
 
   const audioEngineRef = useRef<AudioEngine | null>(null);
   const scheduledEventsRef = useRef<number[]>([]);
+  const placementsRef = useRef<any[]>([]);
 
   const serializeLoop = (): Omit<Loop, 'id' | 'updatedAt'> => {
     const chordProgression: ChordCell[] = barChords
@@ -222,9 +230,10 @@ export default function LoopLabView() {
       }
     } else {
       if (!isPlaying) {
-        // Reset playhead to beginning before playing
+        // Reset playhead and schedule events BEFORE starting transport (eliminates race condition)
         Tone.Transport.position = 0;
         setCurrentStep(0);
+        scheduleAllNotes();
         Tone.Transport.start();
         setIsPlaying(true);
       } else {
@@ -320,26 +329,29 @@ export default function LoopLabView() {
     return count * secPerSixteenth;
   };
 
-  useEffect(() => {
-    if (!isPlaying || !audioEngineRef.current || placements.length === 0) { return; }
+  // Schedule all notes - called before Transport.start() to eliminate race condition
+  const scheduleAllNotes = () => {
+    if (!audioEngineRef.current) return;
     const engine = audioEngineRef.current;
 
+    // Clear existing events
     Tone.Transport.cancel();
     scheduledEventsRef.current = [];
 
-    placements.forEach((placement) => {
+    // Read from ref for latest placements
+    const currentPlacements = placementsRef.current;
+
+    currentPlacements.forEach((placement) => {
       const engineSoundId = mapSoundId(placement.soundId);
       let note = midiToNoteName(placement.pitch);
 
       // Override pitch for drum sounds - always play at low frequency for deep bass sound
-      // Drums: kick, snare, hihat, clap should not follow grid pitch
       if (placement.soundId === 'kick' || placement.soundId === 'snare' ||
           placement.soundId === 'hihat' || placement.soundId === 'clap') {
-        note = 'C1'; // Low bass frequency for all drums
+        note = 'C1';
       }
 
       const time = barToToneTime(placement.bar);
-
       const start16 = placement.bar;
       const rawLen16 = placement.duration16 ?? 1;
       const end16 = Math.min(64, start16 + rawLen16);
@@ -355,7 +367,12 @@ export default function LoopLabView() {
 
     Tone.Transport.loop = true;
     Tone.Transport.loopEnd = '4m';
+  };
 
+  // Re-schedule when placements/bpm change during playback
+  useEffect(() => {
+    if (!isPlaying) return;
+    scheduleAllNotes();
   }, [isPlaying, placements, bpm]);
 
   useEffect(() => { if (!isPlaying) { return; } const animate = () => { const transportSeconds = Tone.Transport.seconds; const beatsPerSecond = bpm / 60; const currentBeat = (transportSeconds * beatsPerSecond) % 16; setCurrentStep(currentBeat); if (isPlaying) { requestAnimationFrame(animate); } }; const animationFrame = requestAnimationFrame(animate); return () => { cancelAnimationFrame(animationFrame); }; }, [isPlaying, bpm]);
@@ -381,13 +398,30 @@ export default function LoopLabView() {
         <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
 
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
-          <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
+          {/* Icon Gallery at top */}
           <div className="flex items-center justify-center" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px' }}>
             <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
           </div>
-          <div className="px-4 pb-4 pt-0 flex flex-col items-center">
-            <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} pitchRange={pitchRange} />
-            <div className="mt-2"><ChordLabels barChords={barChords} /></div>
+
+          {/* Preset buttons row */}
+          <div className="flex items-center justify-center gap-2 px-4 py-2 border-t border-b border-[rgba(0,0,0,0.1)]">
+            <span className="text-[rgba(0,0,0,0.55)]" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px' }}>PRESETS:</span>
+            <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
+          </div>
+
+          {/* Main sequencer area with left sidebar */}
+          <div className="flex flex-row px-4 pb-4 pt-4">
+            {/* Left sidebar: Octave controls + Chord picker */}
+            <div className="flex flex-col gap-3 mr-4">
+              <OctaveControls octaveOffset={octaveOffset} onOctaveChange={setOctaveOffset} />
+              <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="vertical" />
+            </div>
+
+            {/* Right: Sequencer grid */}
+            <div className="flex flex-col items-center">
+              <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} />
+              <div className="mt-2"><ChordLabels barChords={barChords} /></div>
+            </div>
           </div>
         </div>
 

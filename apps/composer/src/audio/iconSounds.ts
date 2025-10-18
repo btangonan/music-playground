@@ -6,6 +6,7 @@ export interface IconSound {
   name: string
   category: 'synth' | 'drum' | 'bass' | 'fx'
   type: 'melodic' | 'rhythmic'
+  oneShot?: boolean // If true, sound has its own envelope (sustain=0) and should use short trigger duration
   toneConfig: {
     synthType: string
     options?: Record<string, unknown>
@@ -47,6 +48,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pluck',
     category: 'synth',
     type: 'melodic',
+    oneShot: true, // PluckSynth naturally decays, let dampening control sound length
     toneConfig: {
       synthType: 'PluckSynth',
       options: {
@@ -62,6 +64,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Arp',
     category: 'synth',
     type: 'melodic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'Synth',
       options: {
@@ -92,6 +95,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Snare',
     category: 'drum',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
       options: {
@@ -106,6 +110,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Hi-hat',
     category: 'drum',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MetalSynth',
       options: {
@@ -124,6 +129,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Clap',
     category: 'drum',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
       options: {
@@ -183,6 +189,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Impact',
     category: 'fx',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MembraneSynth',
       options: {
@@ -212,6 +219,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Glitch',
     category: 'fx',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MetalSynth',
       options: {
@@ -228,6 +236,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Vocal Chop',
     category: 'fx',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'AMSynth',
       options: {
@@ -242,6 +251,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Noise',
     category: 'fx',
     type: 'rhythmic',
+    oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
       options: {

@@ -25,6 +25,8 @@ interface IconSequencerWithDensityProps {
   onPreviewNote?: (soundId: string, pitch: number) => void;
   resolution: '1/4' | '1/8' | '1/16';
   quantizeBar: (bar: number) => number;
+  octaveOffset?: number;
+  onOctaveOffsetChange?: (offset: number) => void;
 }
 
 const COLUMN_WIDTH = 48; // quarter
@@ -52,12 +54,15 @@ const BASE_SCALE = 0.8;
 const BAR_HEIGHT = 12;  // Bar for duration visualization
 
 // Debug flag - set to true to enable console logs and visual debug overlays
-const DEBUG = false;
+const DEBUG = true;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
-  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
+  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange } = props;
 
-  const [octaveOffset, setOctaveOffset] = useState(0);
+  const [internalOctaveOffset, setInternalOctaveOffset] = useState(0);
+  const octaveOffset = externalOctaveOffset !== undefined ? externalOctaveOffset : internalOctaveOffset;
+  const setOctaveOffset = onOctaveOffsetChange || setInternalOctaveOffset;
+
   const BASE_TOP_MIDI = 83;
   const BASE_BOTTOM_MIDI = 48;
   const topMidi = BASE_TOP_MIDI + octaveOffset * 12;
@@ -261,7 +266,12 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const row = topMidi - p.pitch;
       const isDragged = draggedPlacementIndex === index;
 
-      const startX = p.bar * SIXTEENTH_WIDTH;
+      // Position container so icon CENTER aligns with cell CENTER
+      // Cell center is at: p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH/2
+      // Icon center is at: ICON_BOX/2 from container left edge
+      // So container left should be: cellCenter - iconCenter
+      const cellCenterX = p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
+      const startX = cellCenterX - ICON_BOX / 2;
       const widthPx = (p.duration16 ?? 1) * SIXTEENTH_WIDTH;
       const rowTop = row * ROW_HEIGHT;
 
@@ -294,35 +304,48 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       return (
         <div
           key={index}
-          draggable
-          onDragStart={(e) => handlePlacementDragStart(e, index)}
-          onDoubleClick={(e) => handleIconDoubleClick(e, index)}
           style={{
             position: 'absolute',
             left: `${startX}px`,
             top: `${blockTop}px`,
             width: `${widthPx}px`,
             height: `${BLOCK_HEIGHT}px`,
-            cursor: isDragged ? 'grabbing' : (hoveredResizeIcon === index ? 'default' : 'grab'),
             zIndex: 200
           }}
         >
-          {/* Icon fixed at left - offset to compensate for SVG internal centering */}
-          <motion.div
-            animate={{ scale: isHit ? 1.1 : 1.0 }}
-            transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+          {/* Draggable wrapper - 40x40px centered on grid cell */}
+          <div
+            draggable
+            onDragStart={(e) => handlePlacementDragStart(e, index)}
+            onDoubleClick={(e) => handleIconDoubleClick(e, index)}
             style={{
               position: 'absolute',
-              left: '-6px', // Shift left by ~6px to align icon visual with grid
+              left: '0px',
               top: `${(BLOCK_HEIGHT - ICON_BOX) / 2}px`,
               width: `${ICON_BOX}px`,
               height: `${ICON_BOX}px`,
-              transformOrigin: 'left center',
-              pointerEvents: 'none'
+              cursor: isDragged ? 'grabbing' : (hoveredResizeIcon === index ? 'default' : 'grab'),
+              zIndex: 201
             }}
           >
-            <IconComponent />
-          </motion.div>
+            {/* Icon centered in draggable wrapper */}
+            <motion.div
+              animate={{ scale: isHit ? 1.1 : 1.0 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+              style={{
+                position: 'absolute',
+                left: '0px',
+                top: '0px',
+                width: `${ICON_BOX}px`,
+                height: `${ICON_BOX}px`,
+                transformOrigin: 'center center',
+                pointerEvents: 'none',
+                backgroundColor: DEBUG ? 'rgba(0, 255, 0, 0.2)' : 'transparent'
+              }}
+            >
+              <IconComponent />
+            </motion.div>
+          </div>
 
           {/* Debug marker - shows exact left edge of container */}
           {DEBUG && (
@@ -415,50 +438,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   return (
     <div>
       <div ref={outerWrapperRef} className="relative flex items-center justify-center" style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
-        {/* Octave Up button - upper left margin within sequencer bounds */}
-        <button
-          onClick={() => setOctaveOffset(o => Math.min(o + 1, 3))}
-          disabled={octaveOffset >= 3}
-          style={{
-            position: 'absolute',
-            left: '-25px',
-            top: `${WRAPPER_PADDING + 10}px`,
-            fontSize: '16px',
-            opacity: 1,
-            cursor: octaveOffset < 3 ? 'pointer' : 'not-allowed',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            color: '#000000',
-            zIndex: 100
-          }}
-          title={`Octave Up (C${3 + octaveOffset} to B${5 + octaveOffset})`}
-        >
-          ↑
-        </button>
-
-        {/* Octave Down button - lower left margin within sequencer bounds */}
-        <button
-          onClick={() => setOctaveOffset(o => Math.max(o - 1, -3))}
-          disabled={octaveOffset <= -3}
-          style={{
-            position: 'absolute',
-            left: '-25px',
-            bottom: `${WRAPPER_PADDING + 10}px`,
-            fontSize: '16px',
-            opacity: 1,
-            cursor: octaveOffset > -3 ? 'pointer' : 'not-allowed',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            color: '#000000',
-            zIndex: 100
-          }}
-          title={`Octave Down (C${3 + octaveOffset} to B${5 + octaveOffset})`}
-        >
-          ↓
-        </button>
-
         <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }}>
           {renderGrid()}
           {renderHoverOverlay()}
