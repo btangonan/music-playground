@@ -52,7 +52,7 @@ const BASE_SCALE = 0.8;
 const BAR_HEIGHT = 12;  // Bar for duration visualization
 
 // Debug flag - set to true to enable console logs and visual debug overlays
-const DEBUG = true;
+const DEBUG = false;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
   const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar } = props;
@@ -318,8 +318,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               width: `${ICON_BOX}px`,
               height: `${ICON_BOX}px`,
               transformOrigin: 'left center',
-              pointerEvents: 'none',
-              backgroundColor: DEBUG ? 'rgba(0, 255, 0, 0.2)' : 'transparent'
+              pointerEvents: 'none'
             }}
           >
             <IconComponent />
