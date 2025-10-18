@@ -260,7 +260,14 @@ export default function LoopLabView() {
       }
     }
     const engineSoundId = mapSoundId(soundId);
-    const note = midiToNoteName(pitch);
+    let note = midiToNoteName(pitch);
+
+    // Override pitch for drum sounds during preview - always play at low frequency
+    if (soundId === 'kick' || soundId === 'snare' ||
+        soundId === 'hihat' || soundId === 'clap') {
+      note = 'C1'; // Low bass frequency for all drums
+    }
+
     const engine = audioEngineRef.current;
     engine.scheduleNote(engineSoundId, note, '+0', 0.7);
   };
@@ -305,7 +312,15 @@ export default function LoopLabView() {
 
     placements.forEach((placement) => {
       const engineSoundId = mapSoundId(placement.soundId);
-      const note = midiToNoteName(placement.pitch);
+      let note = midiToNoteName(placement.pitch);
+
+      // Override pitch for drum sounds - always play at low frequency for deep bass sound
+      // Drums: kick, snare, hihat, clap should not follow grid pitch
+      if (placement.soundId === 'kick' || placement.soundId === 'snare' ||
+          placement.soundId === 'hihat' || placement.soundId === 'clap') {
+        note = 'C1'; // Low bass frequency for all drums
+      }
+
       const time = barToToneTime(placement.bar);
 
       const start16 = placement.bar;
