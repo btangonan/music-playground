@@ -2,9 +2,24 @@
 // Provides simplified API for scheduling icon sound playback
 
 import * as Tone from 'tone'
+import { Midi } from '@tonejs/midi'
 import { ICON_SOUNDS, type IconSound } from './iconSounds'
 
-type Instrument = Tone.Synth | Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.NoiseSynth | Tone.MetalSynth
+type Instrument = Tone.Synth | Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.NoiseSynth | Tone.MetalSynth | Tone.FMSynth | Tone.AMSynth
+
+// MIDI parsing types
+export interface ParsedMidiNote {
+  timeSec: number
+  durationSec: number
+  midi: number
+  velocity: number
+}
+
+export interface ParsedMidiClip {
+  name: string
+  bpm: number
+  notes: ParsedMidiNote[]
+}
 
 export class AudioEngine {
   private instruments: Map<string, Instrument>
@@ -71,6 +86,39 @@ export class AudioEngine {
     }
   }
 
+  /**
+   * Parse MIDI file into normalized clip format
+   * @param arrayBuffer - MIDI file data
+   * @param name - Optional name for the clip (defaults to 'Imported MIDI')
+   * @returns Parsed MIDI clip with notes and BPM
+   */
+  async parseMIDI(arrayBuffer: ArrayBuffer, name: string = 'Imported MIDI'): Promise<ParsedMidiClip> {
+    const midi = new Midi(arrayBuffer)
+
+    // Get BPM from first tempo change, or default to 120
+    const bpm = midi.header.tempos.length > 0 ? midi.header.tempos[0].bpm : 120
+
+    // Flatten all tracks into single note array
+    const notes: ParsedMidiNote[] = []
+
+    for (const track of midi.tracks) {
+      for (const note of track.notes) {
+        notes.push({
+          timeSec: note.time,
+          durationSec: note.duration,
+          midi: note.midi,
+          velocity: note.velocity
+        })
+      }
+    }
+
+    return {
+      name,
+      bpm,
+      notes
+    }
+  }
+
   dispose(): void {
     Tone.Transport.clear(0)
     for (const instrument of this.instruments.values()) {
@@ -86,36 +134,45 @@ export class AudioEngine {
     let instrument: Instrument
 
     switch (synthType) {
-      case 'Synth':
-        instrument = new Tone.Synth(options)
-        break
       case 'PolySynth':
-        instrument = new Tone.PolySynth(options)
-        break
-      case 'MonoSynth':
-        instrument = new Tone.MonoSynth(options)
-        break
-      case 'MembraneSynth':
-        instrument = new Tone.MembraneSynth(options)
+        // Already polyphonic - options are for the voice synths (default: Synth)
+        instrument = new Tone.PolySynth(Tone.Synth, options)
         break
       case 'NoiseSynth':
+        // NoiseSynth doesn't take notes, can't be wrapped in PolySynth
         instrument = new Tone.NoiseSynth(options)
         break
+      case 'MembraneSynth':
+        // MembraneSynth doesn't extend Monophonic, can't be wrapped
+        instrument = new Tone.MembraneSynth(options)
+        break
       case 'MetalSynth':
+        // MetalSynth doesn't extend Monophonic, can't be wrapped
         instrument = new Tone.MetalSynth(options)
         break
+      case 'Synth':
+        // Wrap in PolySynth for polyphony (enables chords)
+        instrument = new Tone.PolySynth(Tone.Synth, options)
+        break
+      case 'MonoSynth':
+        // Wrap in PolySynth for polyphony
+        instrument = new Tone.PolySynth(Tone.MonoSynth, options)
+        break
       case 'FMSynth':
-        instrument = new Tone.FMSynth(options)
+        // Wrap in PolySynth for polyphony
+        instrument = new Tone.PolySynth(Tone.FMSynth, options)
         break
       case 'AMSynth':
-        instrument = new Tone.AMSynth(options)
+        // Wrap in PolySynth for polyphony
+        instrument = new Tone.PolySynth(Tone.AMSynth, options)
         break
       case 'PluckSynth':
+        // PluckSynth - keep monophonic to avoid compatibility issues
         // @ts-expect-error PluckSynth exists but may not be in types
         instrument = new Tone.PluckSynth(options)
         break
       default:
-        instrument = new Tone.Synth()
+        instrument = new Tone.PolySynth(Tone.Synth)
     }
 
     instrument.toDestination()

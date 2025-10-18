@@ -123,6 +123,83 @@ export default function LoopLabView() {
     setLastSaved(new Date(loop.updatedAt));
   };
 
+  const handleSave = async () => {
+    // Prevent concurrent saves
+    if (isSaving) return;
+
+    // Stop playback before saving
+    if (isPlaying) {
+      handlePlayPause();
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const loopData = serializeLoop();
+
+      let savedLoop: Loop;
+      if (currentLoopId) {
+        // Update existing loop
+        savedLoop = await loopsApi.updateLoop(currentLoopId, {
+          ...loopData,
+          updatedAt: new Date().toISOString(),
+        });
+      } else {
+        // Create new loop - backend generates id and updatedAt
+        savedLoop = await loopsApi.createLoop(loopData);
+        setCurrentLoopId(savedLoop.id);
+
+        // Update URL with loopId
+        const url = new URL(window.location.href);
+        url.searchParams.set('loopId', savedLoop.id);
+        window.history.replaceState(null, '', url.toString());
+      }
+
+      setLastSaved(new Date());
+      console.log('Loop saved successfully:', savedLoop.id);
+      showToast('Loop saved successfully!', 'success');
+    } catch (error) {
+      const { message } = formatApiError(error);
+      setSaveError(message);
+      console.error('Save failed:', message);
+      showToast(message, 'error');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSelectSound = (soundId: string) => {
+    setSelectedSound(soundId === selectedSound ? null : soundId);
+  };
+
+  const handleChordSelect = (chord: Chord | null) => {
+    setAssignmentMode(chord);
+  };
+
+  const handlePresetSelect = (preset: string) => {
+    // Preset chord progressions
+    const presets: Record<string, (Chord | null)[]> = {
+      Pop: ['I', 'V', 'vi', 'IV'],
+      Sad: ['vi', 'IV', 'I', 'V'],
+      Chill: ['I', 'iii', 'vi', 'IV'],
+      Shoegaze: ['I', 'bVII', 'IV', 'I']
+    };
+
+    const progression = presets[preset];
+    if (progression) {
+      setBarChords(progression);
+    }
+  };
+
+  const handleBarChordAssign = (barIndex: number, chord: Chord) => {
+    const newBarChords = [...barChords];
+    newBarChords[barIndex] = chord;
+    setBarChords(newBarChords);
+    // Exit assignment mode after assigning
+    setAssignmentMode(null);
+  };
+
   const handlePlayPause = async () => {
     if (!audioEngineRef.current) {
       try {
