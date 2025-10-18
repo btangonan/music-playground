@@ -17,6 +17,7 @@ import { formatApiError } from '../utils/errors';
 import type { Loop, ChordCell, IconStep } from '@music/types/schemas';
 import { useToast } from '../components/ToastContext';
 import { useAuth } from '../hooks/useAuth';
+import '../fonts.css';
 
 type GridResolution = '1/4' | '1/8' | '1/16';
 
@@ -353,7 +354,7 @@ export default function LoopLabView() {
     <div className="min-h-screen p-6" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="max-w-[900px] mx-auto">
         <div className="text-center mb-6">
-          <h1 style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '32px', marginBottom: '4px' }}>
+          <h1 style={{ fontFamily: 'Satoshi, Inter, system-ui, sans-serif', fontWeight: 900, fontSize: '32px', marginBottom: '4px' }}>
             Loop Lab
           </h1>
           <p className="text-[rgba(0,0,0,0.55)]" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '14px' }}>
