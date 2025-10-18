@@ -245,7 +245,15 @@ export default function LoopLabView() {
     }
     const engineSoundId = mapSoundId(soundId);
     const engine = audioEngineRef.current;
-    engine.scheduleNote(engineSoundId, 'C4', '+0', 0.7);
+
+    // Use low pitch for drums to get that deep bass kick sound
+    let note = 'C4';
+    if (soundId === 'kick' || soundId === 'snare' ||
+        soundId === 'hihat' || soundId === 'clap') {
+      note = 'C1'; // Low bass frequency for all drums
+    }
+
+    engine.scheduleNote(engineSoundId, note, '+0', 0.7);
   };
 
   const handlePreviewNote = async (soundId: string, pitch: number) => {
