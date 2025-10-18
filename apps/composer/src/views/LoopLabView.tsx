@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import * as Tone from 'tone';
 import TopBar from '../components/TopBar';
 import ChordPalette from '../components/ChordPalette';
-import OctaveControls from '../components/OctaveControls';
 import IconGallery from '../components/IconGallery';
 import IconSequencerWithDensity from '../components/IconSequencerWithDensity';
 import StepNumbers from '../components/StepNumbers';
@@ -404,24 +403,15 @@ export default function LoopLabView() {
           </div>
 
           {/* Preset buttons row */}
-          <div className="flex items-center justify-center gap-2 px-4 py-2 border-t border-b border-[rgba(0,0,0,0.1)]">
+          <div className="flex items-center justify-center gap-2 px-4 py-2">
             <span className="text-[rgba(0,0,0,0.55)]" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px' }}>PRESETS:</span>
             <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
           </div>
 
-          {/* Main sequencer area with left sidebar */}
-          <div className="flex flex-row px-4 pb-4 pt-4">
-            {/* Left sidebar: Octave controls + Chord picker */}
-            <div className="flex flex-col gap-3 mr-4">
-              <OctaveControls octaveOffset={octaveOffset} onOctaveChange={setOctaveOffset} />
-              <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="vertical" />
-            </div>
-
-            {/* Right: Sequencer grid */}
-            <div className="flex flex-col items-center">
-              <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} />
-              <div className="mt-2"><ChordLabels barChords={barChords} /></div>
-            </div>
+          {/* Main sequencer area */}
+          <div className="px-4 pb-4 pt-4 flex flex-col items-center">
+            <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
+            <div className="mt-2"><ChordLabels barChords={barChords} /></div>
           </div>
         </div>
 

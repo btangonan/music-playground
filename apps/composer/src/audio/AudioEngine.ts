@@ -84,7 +84,15 @@ export class AudioEngine {
       return false
     }
 
-    const dur = typeof durationSeconds === 'number' && isFinite(durationSeconds) ? Math.max(0.01, durationSeconds) : 0.15
+    // Check if this is a one-shot sound (has its own envelope with sustain=0)
+    const soundConfig = ICON_SOUNDS[soundId]
+    const isOneShot = soundConfig?.oneShot === true
+
+    // For one-shot sounds, use very short duration to let envelope control the sound
+    // For sustained sounds, use the provided duration or default
+    const dur = isOneShot
+      ? 0.01
+      : (typeof durationSeconds === 'number' && isFinite(durationSeconds) ? Math.max(0.01, durationSeconds) : 0.15)
 
     try {
       if (instrument instanceof Tone.NoiseSynth) {
@@ -180,7 +188,7 @@ export class AudioEngine {
         instrument = new Tone.PolySynth(Tone.AMSynth, options)
         break
       case 'PluckSynth':
-        // PluckSynth - keep monophonic to avoid compatibility issues
+        // PluckSynth - keep monophonic (cannot be wrapped - doesn't extend Monophonic)
         // @ts-expect-error PluckSynth exists but may not be in types
         instrument = new Tone.PluckSynth(options)
         break

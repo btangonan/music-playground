@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
+import ChordPalette from './ChordPalette';
 
 interface IconPlacement {
   soundId: string;
@@ -27,6 +28,8 @@ interface IconSequencerWithDensityProps {
   quantizeBar: (bar: number) => number;
   octaveOffset?: number;
   onOctaveOffsetChange?: (offset: number) => void;
+  onChordSelect?: (chord: Chord | null) => void;
+  onPresetSelect?: (preset: string) => void;
 }
 
 const COLUMN_WIDTH = 48; // quarter
@@ -57,7 +60,7 @@ const BAR_HEIGHT = 12;  // Bar for duration visualization
 const DEBUG = true;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
-  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange } = props;
+  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange, onChordSelect, onPresetSelect } = props;
 
   const [internalOctaveOffset, setInternalOctaveOffset] = useState(0);
   const octaveOffset = externalOctaveOffset !== undefined ? externalOctaveOffset : internalOctaveOffset;
@@ -436,7 +439,71 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const handleBarClick = (e: React.MouseEvent, barIndex: number) => { e.stopPropagation(); if (assignmentMode) onBarChordAssign(barIndex, assignmentMode); };
 
   return (
-    <div>
+    <div className="flex flex-row">
+      {/* Left sidebar: Up arrow + Chord buttons + Down arrow */}
+      <div className="flex flex-col items-center justify-between mr-2" style={{ height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }}>
+        {/* Octave Up */}
+        <button
+          onClick={() => setOctaveOffset(o => Math.min(o + 1, 3))}
+          disabled={octaveOffset >= 3}
+          style={{
+            fontSize: '20px',
+            opacity: octaveOffset < 3 ? 1 : 0.3,
+            cursor: octaveOffset < 3 ? 'pointer' : 'not-allowed',
+            background: 'none',
+            border: 'none',
+            padding: '4px',
+            color: '#000000',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}
+          title={`Octave Up (C${3 + octaveOffset} to B${5 + octaveOffset})`}
+        >
+          ↑
+        </button>
+
+        {/* Chord buttons in between */}
+        {onChordSelect && onPresetSelect && (
+          <div className="flex-1 flex items-center">
+            <ChordPalette
+              selectedChord={assignmentMode}
+              onChordSelect={onChordSelect}
+              onPresetSelect={onPresetSelect}
+              layout="vertical"
+            />
+          </div>
+        )}
+
+        {/* Octave Down */}
+        <button
+          onClick={() => setOctaveOffset(o => Math.max(o - 1, -3))}
+          disabled={octaveOffset <= -3}
+          style={{
+            fontSize: '20px',
+            opacity: octaveOffset > -3 ? 1 : 0.3,
+            cursor: octaveOffset > -3 ? 'pointer' : 'not-allowed',
+            background: 'none',
+            border: 'none',
+            padding: '4px',
+            color: '#000000',
+            width: '32px',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0
+          }}
+          title={`Octave Down (C${3 + octaveOffset} to B${5 + octaveOffset})`}
+        >
+          ↓
+        </button>
+      </div>
+
+      {/* Sequencer grid */}
       <div ref={outerWrapperRef} className="relative flex items-center justify-center" style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
         <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }}>
           {renderGrid()}
