@@ -57,6 +57,19 @@ export class AudioEngine {
   }
 
   /**
+   * Stop all currently playing notes immediately
+   * Calls releaseAll() on PolySynth instruments to silence active notes
+   */
+  stopAllNotes(): void {
+    for (const instrument of this.instruments.values()) {
+      // PolySynth instances have releaseAll() method
+      if ('releaseAll' in instrument && typeof instrument.releaseAll === 'function') {
+        instrument.releaseAll()
+      }
+    }
+  }
+
+  /**
    * Schedule a note to play at specific time
    * @param soundId - Icon sound ID (e.g., 'synth-lead')
    * @param note - Note to play (e.g., 'C4', 'A3')

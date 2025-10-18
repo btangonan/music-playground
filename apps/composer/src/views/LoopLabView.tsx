@@ -219,6 +219,9 @@ export default function LoopLabView() {
         Tone.Transport.start();
         setIsPlaying(true);
       } else {
+        // Stop playback: clear scheduled events and release all active notes
+        Tone.Transport.cancel();
+        audioEngineRef.current.stopAllNotes();
         Tone.Transport.pause();
         Tone.Transport.position = 0;
         setCurrentStep(0);
