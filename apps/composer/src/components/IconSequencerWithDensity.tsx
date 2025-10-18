@@ -48,6 +48,9 @@ const centerXFromBar = (bar: number) => bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH 
 const ICON_BOX = 40;
 const BASE_SCALE = 0.8;
 
+// Duration bar styling
+const BAR_HEIGHT = 12;  // Bar for duration visualization
+
 // Debug flag - set to true to enable console logs and visual debug overlays
 const DEBUG = false;
 
@@ -70,6 +73,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const [draggedPlacementIndex, setDraggedPlacementIndex] = useState<number | null>(null);
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number; soundId: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [resizingPlacement, setResizingPlacement] = useState<{ index: number; startX: number; startDuration: number } | null>(null);
+  const [hoveredResizeIcon, setHoveredResizeIcon] = useState<number | null>(null);
   const sequencerRef = useRef<HTMLDivElement>(null);
   const outerWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -78,9 +83,60 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const handlePlacementDragStart = (e: React.DragEvent, index: number) => { e.stopPropagation(); setDraggedPlacementIndex(index); setIsDragging(true); const p = placements[index]; setDragGhost({ x: e.clientX, y: e.clientY, soundId: p.soundId }); e.dataTransfer.effectAllowed = 'copyMove'; e.dataTransfer.setData('placementIndex', String(index)); e.dataTransfer.setData('soundId', p.soundId); makeCenteredDragImage(e); };
   const handleIconDoubleClick = (e: React.MouseEvent, index: number) => { e.stopPropagation(); const updated = placements.filter((_, i) => i !== index); setPlacements(updated); };
 
-  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); if (!outerWrapperRef.current) return; const rect = outerWrapperRef.current.getBoundingClientRect(); let x = e.clientX - rect.left - WRAPPER_PADDING; let y = e.clientY - rect.top - WRAPPER_PADDING; const maxX = COLUMN_WIDTH * TIME_STEPS; const maxY = ROW_HEIGHT * TOTAL_SEMITONES; x = Math.min(Math.max(x, 0), maxX); y = Math.min(Math.max(y, 0), maxY); const col = Math.floor(x / COLUMN_WIDTH); const row = Math.floor(y / ROW_HEIGHT); const divisor = SNAP_DIVISOR[resolution]; const absoluteRawBar = x / SIXTEENTH_WIDTH; const snappedBar = Math.round(absoluteRawBar / divisor) * divisor; const finalSnappedBar = Math.max(0, Math.min(63, snappedBar)); if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) { setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: finalSnappedBar }); } const soundId = dragGhost?.soundId || draggingSound; if (soundId) { const cellCenterX = finalSnappedBar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2; const quantizedCenterY = row * ROW_HEIGHT + ROW_HEIGHT / 2; const ghostX = rect.left + WRAPPER_PADDING + cellCenterX; const ghostY = rect.top + WRAPPER_PADDING + quantizedCenterY; setDragGhost({ x: ghostX, y: ghostY, soundId }); if (!isDragging) setIsDragging(true); } };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); if (!outerWrapperRef.current) return; const rect = outerWrapperRef.current.getBoundingClientRect(); let x = e.clientX - rect.left - WRAPPER_PADDING; let y = e.clientY - rect.top - WRAPPER_PADDING; const maxX = COLUMN_WIDTH * TIME_STEPS; const maxY = ROW_HEIGHT * TOTAL_SEMITONES; x = Math.min(Math.max(x, 0), maxX); y = Math.min(Math.max(y, 0), maxY); const col = Math.floor(x / COLUMN_WIDTH); const row = Math.floor(y / ROW_HEIGHT); const divisor = SNAP_DIVISOR[resolution]; const absoluteRawBar = x / SIXTEENTH_WIDTH; const snappedBar = Math.floor(absoluteRawBar / divisor) * divisor; const finalSnappedBar = Math.max(0, Math.min(63, snappedBar)); if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) { setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: finalSnappedBar }); } const soundId = dragGhost?.soundId || draggingSound; if (soundId) { setDragGhost({ x: e.clientX, y: e.clientY, soundId }); if (!isDragging) setIsDragging(true); } };
 
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!outerWrapperRef.current) return; const rect = outerWrapperRef.current.getBoundingClientRect(); let x = e.clientX - rect.left - WRAPPER_PADDING; let y = e.clientY - rect.top - WRAPPER_PADDING; const maxX = COLUMN_WIDTH * TIME_STEPS; const maxY = ROW_HEIGHT * TOTAL_SEMITONES; x = Math.min(Math.max(x, 0), maxX); y = Math.min(Math.max(y, 0), maxY); const col = Math.floor(x / COLUMN_WIDTH); const row = Math.floor(y / ROW_HEIGHT); const divisor = SNAP_DIVISOR[resolution]; const absoluteRawBar = x / SIXTEENTH_WIDTH; const snappedBar = Math.round(absoluteRawBar / divisor) * divisor; const finalSnappedBar = Math.max(0, Math.min(63, snappedBar)); const pitch = topMidi - row; const isDuplicating = e.metaKey || e.altKey; const placementIndexStr = e.dataTransfer.getData('placementIndex'); if (placementIndexStr) { const placementIndex = parseInt(placementIndexStr); if (isDuplicating) { const original = placements[placementIndex]; const np: IconPlacement = { ...original, bar: finalSnappedBar, pitch }; setPlacements([...placements, np]); onPreviewNote?.(np.soundId, pitch); } else { const up = [...placements]; up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch }; setPlacements(up); onPreviewNote?.(up[placementIndex].soundId, pitch); } setDraggedPlacementIndex(null); } else { const soundId = e.dataTransfer.getData('soundId'); if (!soundId) return; const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 }; setPlacements([...placements, np]); onPreviewNote?.(soundId, pitch); } setHoveredCell(null); setIsDragging(false); setDragGhost(null); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); if (!outerWrapperRef.current) return; const rect = outerWrapperRef.current.getBoundingClientRect(); let x = e.clientX - rect.left - WRAPPER_PADDING; let y = e.clientY - rect.top - WRAPPER_PADDING; const maxX = COLUMN_WIDTH * TIME_STEPS; const maxY = ROW_HEIGHT * TOTAL_SEMITONES; x = Math.min(Math.max(x, 0), maxX); y = Math.min(Math.max(y, 0), maxY); const col = Math.floor(x / COLUMN_WIDTH); const row = Math.floor(y / ROW_HEIGHT); const divisor = SNAP_DIVISOR[resolution]; const absoluteRawBar = x / SIXTEENTH_WIDTH; const snappedBar = Math.floor(absoluteRawBar / divisor) * divisor; const finalSnappedBar = Math.max(0, Math.min(63, snappedBar)); const pitch = topMidi - row; const isDuplicating = e.metaKey || e.altKey; const placementIndexStr = e.dataTransfer.getData('placementIndex'); if (placementIndexStr) { const placementIndex = parseInt(placementIndexStr); if (isDuplicating) { const original = placements[placementIndex]; const np: IconPlacement = { ...original, bar: finalSnappedBar, pitch }; setPlacements([...placements, np]); onPreviewNote?.(np.soundId, pitch); } else { const up = [...placements]; up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch }; setPlacements(up); onPreviewNote?.(up[placementIndex].soundId, pitch); } setDraggedPlacementIndex(null); } else { const soundId = e.dataTransfer.getData('soundId'); if (!soundId) return; const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 }; setPlacements([...placements, np]); onPreviewNote?.(soundId, pitch); } setHoveredCell(null); setIsDragging(false); setDragGhost(null); };
+
+  const handleResizeStart = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const currentDuration = placements[index].duration16 ?? 1;
+    setResizingPlacement({ index, startX: e.clientX, startDuration: currentDuration });
+  };
+
+  useEffect(() => {
+    if (!resizingPlacement) return;
+
+    const handleResizeMove = (e: MouseEvent) => {
+      if (!outerWrapperRef.current) return;
+
+      const deltaX = e.clientX - resizingPlacement.startX;
+      const deltaSixteenths = Math.round(deltaX / SIXTEENTH_WIDTH);
+
+      // Calculate new duration with resolution snapping
+      const divisor = SNAP_DIVISOR[resolution];
+      const rawNewDuration = resizingPlacement.startDuration + deltaSixteenths;
+      const snappedDuration = Math.round(rawNewDuration / divisor) * divisor;
+
+      // Minimum 1 sixteenth
+      const minDuration = Math.max(divisor, 1);
+      let newDuration = Math.max(minDuration, snappedDuration);
+
+      // Clamp to loop end (bar 64)
+      const placement = placements[resizingPlacement.index];
+      const maxDuration = 64 - placement.bar;
+      newDuration = Math.min(newDuration, maxDuration);
+
+      // Update placement if changed
+      if (newDuration !== placement.duration16) {
+        const updated = [...placements];
+        updated[resizingPlacement.index] = { ...placement, duration16: newDuration };
+        setPlacements(updated);
+      }
+    };
+
+    const handleResizeEnd = () => {
+      setResizingPlacement(null);
+    };
+
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleResizeMove);
+      document.removeEventListener('mouseup', handleResizeEnd);
+    };
+  }, [resizingPlacement, placements, resolution]);
 
   const renderGrid = () => {
     const rows = [];
@@ -112,6 +168,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   };
 
   const renderPlacements = () => {
+    const BLOCK_HEIGHT = 40; // Container height (for icon)
+
     return placements.map((p, index) => {
       const sound = SOUND_ICONS.find(s => s.id === p.soundId);
       if (!sound) return null;
@@ -123,17 +181,102 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const widthPx = (p.duration16 ?? 1) * SIXTEENTH_WIDTH;
       const rowTop = row * ROW_HEIGHT;
 
+      // Center the container on the grid row
+      const blockTop = rowTop - (BLOCK_HEIGHT - ROW_HEIGHT) / 2;
+
+      // Calculate bar dimensions - start bar behind icon for integrated look
+      const BAR_START_OFFSET = 30; // Start 10px before icon right edge (overlap)
+      const barWidth = Math.max(0, widthPx - BAR_START_OFFSET);
+      const barVerticalOffset = (BLOCK_HEIGHT - BAR_HEIGHT) / 2;
+
+      // Get icon color for bar
+      const barColor = sound.color || '#808080';
+
       const iconQuarterNotePosition = p.bar / 4;
       const distance = Math.abs(currentStep - iconQuarterNotePosition);
       const isHit = isPlaying && distance < 0.08;
 
-      if (DEBUG) { console.log(`📍 BLOCK ${index}:`, { bar: p.bar, dur: p.duration16 ?? 1, startX, widthPx, rowTop }); }
+      if (DEBUG) { console.log(`📍 BLOCK ${index}:`, { bar: p.bar, dur: p.duration16 ?? 1, startX, widthPx, barWidth, blockTop, rowTop }); }
 
       return (
-        <div key={index} draggable onDragStart={(e) => handlePlacementDragStart(e, index)} onDoubleClick={(e) => handleIconDoubleClick(e, index)} style={{ position: 'absolute', left: `${startX}px`, top: `${rowTop}px`, width: `${widthPx}px`, height: `${ROW_HEIGHT}px`, border: '2px solid rgba(0,0,0,0.25)', backgroundColor: 'rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden', cursor: isDragged ? 'grabbing' : 'grab', zIndex: 200 }}>
-          <motion.div animate={{ scale: isHit ? BASE_SCALE * 1.3 : BASE_SCALE }} transition={{ type: 'spring', stiffness: 600, damping: 20 }} style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', width: `${ICON_BOX}px`, height: `${ICON_BOX}px`, transformOrigin: 'center', pointerEvents: 'none' }}>
-            <IconComponent />
-          </motion.div>
+        <div
+          key={index}
+          draggable
+          onDragStart={(e) => handlePlacementDragStart(e, index)}
+          onDoubleClick={(e) => handleIconDoubleClick(e, index)}
+          style={{
+            position: 'absolute',
+            left: `${startX}px`,
+            top: `${blockTop}px`,
+            width: `${widthPx}px`,
+            height: `${BLOCK_HEIGHT}px`,
+            cursor: isDragged ? 'grabbing' : (hoveredResizeIcon === index ? 'default' : 'grab'),
+            zIndex: 200
+          }}
+        >
+          {/* Icon fixed at left */}
+          <div style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            width: `${ICON_BOX}px`,
+            height: `${ICON_BOX}px`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <motion.div
+              animate={{ scale: isHit ? BASE_SCALE * 1.3 : BASE_SCALE }}
+              transition={{ type: 'spring', stiffness: 600, damping: 20 }}
+              style={{
+                width: `${ICON_BOX}px`,
+                height: `${ICON_BOX}px`,
+                transformOrigin: 'center',
+                pointerEvents: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <IconComponent />
+            </motion.div>
+          </div>
+
+          {/* Duration bar trailing to the right - only show when resizing or duration > default */}
+          {(resizingPlacement?.index === index || barWidth > 0) && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${BAR_START_OFFSET}px`,
+                top: `${barVerticalOffset}px`,
+                width: `${Math.max(barWidth, 0)}px`,
+                height: `${BAR_HEIGHT}px`,
+                background: `${barColor}80`,
+                borderRadius: `0 ${BAR_HEIGHT / 2}px ${BAR_HEIGHT / 2}px 0`, // Right edge semicircle
+                pointerEvents: 'none',
+                opacity: resizingPlacement?.index === index ? 1 : (barWidth > 0 ? 1 : 0),
+                transition: 'opacity 0.15s ease'
+              }}
+            />
+          )}
+
+          {/* Invisible resize zone at right edge of duration */}
+          <div
+            onMouseDown={(e) => handleResizeStart(e, index)}
+            onMouseEnter={() => setHoveredResizeIcon(index)}
+            onMouseLeave={() => setHoveredResizeIcon(null)}
+            style={{
+              position: 'absolute',
+              left: `${Math.max(30, widthPx - 15)}px`, // Move with duration end, minimum at icon edge
+              top: 0,
+              width: '15px', // 15px hover zone width
+              height: `${BLOCK_HEIGHT}px`,
+              cursor: hoveredResizeIcon === index || resizingPlacement?.index === index ? 'ew-resize' : 'auto',
+              zIndex: 3,
+              // Debug: uncomment to see hover zone
+              // background: 'rgba(255,0,0,0.2)'
+            }}
+          />
         </div>
       );
     });
