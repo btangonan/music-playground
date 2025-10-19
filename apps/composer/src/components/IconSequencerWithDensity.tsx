@@ -73,8 +73,24 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
   const isSyncingFromExternal = useRef(false);
 
-  useEffect(() => { if (externalPlacements) { isSyncingFromExternal.current = true; setPlacements(externalPlacements); } }, [externalPlacements]);
-  useEffect(() => { if (!isSyncingFromExternal.current) { onPlacementsChange?.(placements); } isSyncingFromExternal.current = false; }, [placements, onPlacementsChange]);
+  // Sync external placements to internal state
+  useEffect(() => {
+    if (externalPlacements) {
+      isSyncingFromExternal.current = true;
+      setPlacements(externalPlacements);
+    }
+  }, [externalPlacements]);
+
+  // Propagate internal changes to parent (but not external changes)
+  useEffect(() => {
+    if (isSyncingFromExternal.current) {
+      // This change came from external source, don't propagate back
+      isSyncingFromExternal.current = false;
+    } else {
+      // Internal change, propagate to parent
+      onPlacementsChange?.(placements);
+    }
+  }, [placements]); // Removed onPlacementsChange from deps - should be stable function
 
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number; xWithinCol: number; snappedBar: number } | null>(null);
   const [draggedPlacementIndex, setDraggedPlacementIndex] = useState<number | null>(null);
