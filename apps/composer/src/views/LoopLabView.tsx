@@ -315,6 +315,10 @@ export default function LoopLabView() {
       const pitches = placements.map(p => p.pitch);
       setPitchRange({ min: Math.min(...pitches), max: Math.max(...pitches) });
     } else { setPitchRange(null); }
+
+    // Auto-switch to 1/16 resolution for MIDI imports (most MIDI uses 1/16th note timing)
+    setResolution('1/16');
+
     showToast(`MIDI loaded: ${placements.length} icons added to grid`, 'success');
   };
 
@@ -426,9 +430,8 @@ export default function LoopLabView() {
             <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
           </div>
 
-          {/* Preset buttons row */}
+          {/* Chord and Preset buttons row */}
           <div className="flex items-center justify-center gap-2 px-4 py-2">
-            <span className="text-[rgba(0,0,0,0.55)]" style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px' }}>PRESETS:</span>
             <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
           </div>
 

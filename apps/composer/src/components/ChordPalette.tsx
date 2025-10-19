@@ -75,7 +75,7 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
       className="bg-white"
       style={{ height: '32px', padding: '0 8px' }}
     >
-      <div className="flex items-center justify-between h-full">
+      <div className="flex items-center justify-between h-full gap-8">
         {/* Left: Label + Chord Buttons */}
         <div className="flex items-center gap-3">
           <span
@@ -132,33 +132,42 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
           </div>
         </div>
 
-        {/* Right: Preset Buttons */}
-        <div className="flex items-center gap-1">
-          {PRESETS.map((preset) => (
-            <button
-              key={preset}
-              onClick={() => onPresetSelect(preset)}
-              className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
-              style={{
-                width: '64px',
-                height: '24px',
-                borderRadius: '8px',
-                fontFamily: 'Inter',
-                fontSize: '12px',
-                fontWeight: 500,
-                backgroundColor: 'white',
-                cursor: 'pointer'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'white';
-              }}
-            >
-              {preset}
-            </button>
-          ))}
+        {/* Right: Preset Label + Buttons */}
+        <div className="flex items-center gap-3">
+          <span
+            className="text-[rgba(0,0,0,0.55)]"
+            style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px', lineHeight: '16px' }}
+          >
+            PRESETS:
+          </span>
+
+          <div className="flex items-center gap-1">
+            {PRESETS.map((preset) => (
+              <button
+                key={preset}
+                onClick={() => onPresetSelect(preset)}
+                className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
+                style={{
+                  width: '64px',
+                  height: '24px',
+                  borderRadius: '8px',
+                  fontFamily: 'Inter',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  backgroundColor: 'white',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'white';
+                }}
+              >
+                {preset}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { Placement } from '../stores/useSequencerStore';
+import type { Placement } from '../types/placement';
 import { midiClipToPlacements } from '../utils/midiToPlacement';
 
 interface MidiUploaderProps {

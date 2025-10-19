@@ -12,3 +12,13 @@ shared/chroma/
 # UI package build artifacts (WIP - needs deps + types)
 packages/ui/dist/
 packages/ui/.turbo/
+
+# Archived debug files and test artifacts
+archive/
+
+# Playwright MCP temporary files
+.playwright-mcp/
+
+# Debug and analysis scripts
+analyze*.mjs
+check-*.mjs

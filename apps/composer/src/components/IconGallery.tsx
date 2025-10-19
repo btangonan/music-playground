@@ -42,9 +42,13 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
               onDragStart={(e) => {
                 e.dataTransfer.effectAllowed = 'copy';
                 e.dataTransfer.setData('soundId', sound.id);
+                console.log('🎯 DRAG START from gallery:', {
+                  soundId: sound.id,
+                  metaKey: e.metaKey
+                });
                 onSelectSound(sound.id);
                 onDragStart?.(sound.id);
-                
+
                 // Create a completely transparent DOM element for drag image
                 const emptyDiv = document.createElement('div');
                 emptyDiv.style.width = '1px';
@@ -54,7 +58,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
                 emptyDiv.style.opacity = '0';
                 document.body.appendChild(emptyDiv);
                 e.dataTransfer.setDragImage(emptyDiv, 0, 0);
-                
+
                 // Clean up after a short delay
                 setTimeout(() => {
                   if (document.body.contains(emptyDiv)) {

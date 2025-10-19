@@ -13,6 +13,8 @@ export interface ParsedMidiNote {
   durationSec: number
   midi: number
   velocity: number
+  channel?: number  // NEW: MIDI channel (0-15, channel 9 = GM drums)
+  program?: number  // NEW: GM program number (0-127) if known
 }
 
 export interface ParsedMidiClip {
@@ -128,16 +130,32 @@ export class AudioEngine {
     // Flatten all tracks into single note array
     const notes: ParsedMidiNote[] = []
 
+    // DEBUG: Track duration distribution
+    const durations: number[] = []
+
     for (const track of midi.tracks) {
+      // Extract channel and program from track (for GM instrument mapping)
+      const channel = typeof track.channel === 'number' ? track.channel : undefined
+      const program = typeof track.instrument?.number === 'number' ? track.instrument.number : undefined
+
       for (const note of track.notes) {
+        durations.push(note.duration)
         notes.push({
           timeSec: note.time,
           durationSec: note.duration,
           midi: note.midi,
-          velocity: note.velocity
+          velocity: note.velocity,
+          channel,
+          program
         })
       }
     }
+
+    // DEBUG: Log duration stats
+    console.log('[MIDI PARSE] Total notes:', notes.length)
+    console.log('[MIDI PARSE] Duration range:', Math.min(...durations).toFixed(3), '-', Math.max(...durations).toFixed(3), 'seconds')
+    const longNotes = durations.filter(d => d > 0.5).length
+    console.log('[MIDI PARSE] Notes >0.5s (truly sustained):', longNotes)
 
     return {
       name,
@@ -205,6 +223,11 @@ export class AudioEngine {
         break
       default:
         instrument = new Tone.PolySynth(Tone.Synth)
+    }
+
+    // Apply volume if specified (in decibels)
+    if (typeof sound.volume === 'number') {
+      instrument.volume.value = sound.volume
     }
 
     instrument.toDestination()

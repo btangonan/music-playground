@@ -7,6 +7,7 @@ export interface IconSound {
   category: 'synth' | 'drum' | 'bass' | 'fx'
   type: 'melodic' | 'rhythmic'
   oneShot?: boolean // If true, sound has its own envelope (sustain=0) and should use short trigger duration
+  volume?: number // Volume in decibels (dB), default is 0. Range: -60 to 6
   toneConfig: {
     synthType: string
     options?: Record<string, unknown>
@@ -20,6 +21,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Lead',
     category: 'synth',
     type: 'melodic',
+    volume: -9, // Balanced synth level
     toneConfig: {
       synthType: 'MonoSynth',
       options: {
@@ -34,6 +36,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pad',
     category: 'synth',
     type: 'melodic',
+    volume: -12, // Piano needs to be audible
     // Grand piano - Salamander samples from CDN
     toneConfig: {
       synthType: 'Sampler',
@@ -59,6 +62,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pluck',
     category: 'synth',
     type: 'melodic',
+    volume: -9, // Balanced synth level
     // Rich sustained bass - deep, warm, full-bodied
     // Sine sub-bass layer with slight harmonic richness
     toneConfig: {
@@ -96,6 +100,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Arp',
     category: 'synth',
     type: 'melodic',
+    volume: -9, // Balanced synth level
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'Synth',
@@ -112,6 +117,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Kick',
     category: 'drum',
     type: 'rhythmic',
+    volume: 0, // Boosted - was too soft
     toneConfig: {
       synthType: 'MembraneSynth',
       options: {
@@ -127,6 +133,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Snare',
     category: 'drum',
     type: 'rhythmic',
+    volume: -3, // Punchy drum level
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
@@ -142,6 +149,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Hi-hat',
     category: 'drum',
     type: 'rhythmic',
+    volume: -6, // Audible but not overpowering
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MetalSynth',
@@ -161,6 +169,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Clap',
     category: 'drum',
     type: 'rhythmic',
+    volume: -3, // Punchy drum level
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
@@ -177,34 +186,34 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Sub',
     category: 'bass',
     type: 'melodic',
-    // Futuristic haunting James Blake - sizzling bass pad
-    // Rich harmonics with filter movement, maintains low-end presence
+    volume: -3, // Strong bass foundation
+    // Deep sub bass - dark and low-frequency focused
+    // Minimal harmonics for pure low-end
     toneConfig: {
       synthType: 'PolySynth',
       options: {
         oscillator: {
-          type: 'fatsquare',   // Rich harmonics for sizzle
-          count: 3,
-          spread: 20           // More detune for texture
+          type: 'sine',        // Pure sine wave for deep sub bass
+          partials: [1, 0.1, 0.02] // Minimal harmonics for darkness
         },
         envelope: {
-          attack: 0.08,        // Medium attack for pad feel
-          decay: 0.4,
-          sustain: 0.7,        // High sustain for bass presence
-          release: 1.2
+          attack: 0.05,        // Quick attack for bass punch
+          decay: 0.3,
+          sustain: 0.8,        // High sustain for low-end presence
+          release: 0.8
         },
         filterEnvelope: {
-          attack: 0.1,
-          decay: 0.6,
-          sustain: 0.5,        // Moderate filter sustain
-          release: 0.8,
-          baseFrequency: 150,  // Low starting point for bass
-          octaves: 3.5         // Wide sweep for sizzle
+          attack: 0.08,
+          decay: 0.4,
+          sustain: 0.6,        // Keep filter relatively closed
+          release: 0.6,
+          baseFrequency: 80,   // Very low starting point for sub
+          octaves: 1.5         // Minimal sweep to stay dark
         },
         filter: {
           type: 'lowpass',
-          Q: 3,                // Some resonance for character
-          rolloff: -24         // Steeper slope to preserve bass
+          Q: 1,                // Minimal resonance for darkness
+          rolloff: -24         // Steep rolloff to cut highs
         }
       }
     }
@@ -215,6 +224,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Wobble',
     category: 'bass',
     type: 'melodic',
+    volume: -3, // Strong bass foundation (was too soft at -9)
     toneConfig: {
       synthType: 'FMSynth',
       options: {
@@ -231,6 +241,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Riser',
     category: 'fx',
     type: 'rhythmic',
+    volume: -12, // Subtle but audible effect
     toneConfig: {
       synthType: 'NoiseSynth',
       options: {
@@ -245,6 +256,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Impact',
     category: 'fx',
     type: 'melodic',
+    volume: -9, // Balanced pad level
     // Thick James Blake-inspired pad synth
     // Multiple detuned sawtooths for width and warmth
     toneConfig: {
@@ -283,6 +295,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Sweep',
     category: 'fx',
     type: 'rhythmic',
+    volume: -9, // Balanced melodic FX
     // Radiohead "Everything In Its Right Place" - Prophet-5 inspired
     // Round, smooth analog character with gentle filter movement
     toneConfig: {
@@ -321,6 +334,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Glitch',
     category: 'fx',
     type: 'rhythmic',
+    volume: -6, // Percussive effect, needs punch
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MetalSynth',
@@ -338,6 +352,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Vocal Chop',
     category: 'fx',
     type: 'rhythmic',
+    volume: -12, // Ethereal but audible
     // Futuristic haunting James Blake - ethereal theremin-like character
     // Bright, wavering, ghostly with wide open filter
     toneConfig: {
@@ -376,6 +391,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Noise',
     category: 'fx',
     type: 'rhythmic',
+    volume: -9, // Balanced noise burst
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
