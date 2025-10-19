@@ -72,10 +72,12 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
   const isSyncingFromExternal = useRef(false);
+  const lastPropagatedRef = useRef<IconPlacement[] | null>(null);
 
   // Sync external placements to internal state
+  // BUT skip if it's the same reference we just sent (prevent circular updates)
   useEffect(() => {
-    if (externalPlacements) {
+    if (externalPlacements && externalPlacements !== lastPropagatedRef.current) {
       isSyncingFromExternal.current = true;
       setPlacements(externalPlacements);
     }
@@ -88,6 +90,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       isSyncingFromExternal.current = false;
     } else {
       // Internal change, propagate to parent
+      lastPropagatedRef.current = placements; // Track what we sent
       onPlacementsChange?.(placements);
     }
   }, [placements]); // Removed onPlacementsChange from deps - should be stable function
