@@ -99,10 +99,37 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const [draggedPlacementIndex, setDraggedPlacementIndex] = useState<number | null>(null);
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number; soundId: string } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const isCmdPressedRef = useRef(false); // Track CMD key state globally (ref to avoid closure bugs)
   const [resizingPlacement, setResizingPlacement] = useState<{ index: number; startX: number; startDuration: number } | null>(null);
   const [hoveredResizeIcon, setHoveredResizeIcon] = useState<number | null>(null);
   const sequencerRef = useRef<HTMLDivElement>(null);
   const outerWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Track CMD key state during drag operations using global keyboard events
+  useEffect(() => {
+    if (!isDragging) return;
+
+    if (DEBUG) console.log('🎹 KEYBOARD LISTENER ATTACHED - ALT/Option key detection active');
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Debug: Log ALL keydown events to see if ANY fire during drag
+      if (DEBUG) console.log('⌨️ KEYDOWN EVENT:', { key: e.key, altKey: e.altKey, code: e.code });
+
+      if (e.key === 'Alt' || e.altKey) {
+        isCmdPressedRef.current = true;
+        if (DEBUG) console.log('⌥ ALT/OPTION PRESSED during drag - replace mode active');
+      }
+    };
+
+    // Don't listen to keyup during drag - CMD state is "sticky" until drag ends
+    // This prevents accidental release during the drop gesture
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      if (DEBUG) console.log('🎹 KEYBOARD LISTENER REMOVED');
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isDragging]);
 
   const makeCenteredDragImage = (e: React.DragEvent) => { const d = document.createElement('div'); d.style.width = `${ICON_BOX}px`; d.style.height = `${ICON_BOX}px`; d.style.position = 'absolute'; d.style.top = '-9999px'; d.style.opacity = '0'; document.body.appendChild(d); e.dataTransfer.setDragImage(d, ICON_BOX / 2, ICON_BOX / 2); setTimeout(() => document.body.contains(d) && document.body.removeChild(d), 0); };
 
@@ -111,6 +138,12 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+    // Always use 'copy' effect to match gallery's effectAllowed='copy'
+    e.dataTransfer.dropEffect = 'copy';
+
+    // Track ALT/Option key state from dragOver event (CMD/Meta blocks drops!)
+    isCmdPressedRef.current = e.altKey;
+
     if (!outerWrapperRef.current) return;
 
     const rect = outerWrapperRef.current.getBoundingClientRect();
@@ -119,14 +152,21 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const maxX = COLUMN_WIDTH * TIME_STEPS;
     const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
 
+    // Get sound ID from drag data or existing ghost
+    const soundId = dragGhost?.soundId || draggingSound;
+
+    // Start tracking drag state as soon as we detect dragging sound from gallery
+    if (soundId && !isDragging) {
+      setIsDragging(true);
+      if (DEBUG) console.log('🎯 DRAG DETECTED - tracking ALT/Option via dragOver altKey');
+    }
+
     // If mouse is outside the grid bounds, clear hover state and don't show preview
     if (rawX < 0 || rawX > maxX || rawY < 0 || rawY > maxY) {
       setHoveredCell(null);
       // Still update drag ghost position for visual feedback
-      const soundId = dragGhost?.soundId || draggingSound;
       if (soundId) {
         setDragGhost({ x: e.clientX, y: e.clientY, soundId });
-        if (!isDragging) setIsDragging(true);
       }
       return;
     }
@@ -153,17 +193,22 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       setHoveredCell({ row, col, xWithinCol: x % COLUMN_WIDTH, snappedBar: finalSnappedBar });
     }
 
-    const soundId = dragGhost?.soundId || draggingSound;
+    // Update drag ghost position
     if (soundId) {
       setDragGhost({ x: e.clientX, y: e.clientY, soundId });
-      if (!isDragging) setIsDragging(true);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
+    if (DEBUG) console.log('🎬 DROP EVENT RECEIVED:', { metaKey: e.metaKey, hasHoveredCell: !!hoveredCell });
+
     e.preventDefault();
     e.stopPropagation();
-    if (!outerWrapperRef.current || !hoveredCell) return;
+
+    if (!outerWrapperRef.current || !hoveredCell) {
+      if (DEBUG) console.log('⚠️ DROP REJECTED - missing refs:', { hasWrapper: !!outerWrapperRef.current, hasHoveredCell: !!hoveredCell });
+      return;
+    }
 
     // Validate that drop position is within actual grid bounds (not just wrapper padding zone)
     const rect = outerWrapperRef.current.getBoundingClientRect();
@@ -221,11 +266,89 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     } else {
       const soundId = e.dataTransfer.getData('soundId');
       if (!soundId) return;
+
+      // ALT/Option+drag replacement feature: check if ALT key was held during drag OR at drop
+      // Using ALT instead of CMD because CMD/Meta blocks browser drop events
+      const replaceMode = isCmdPressedRef.current || e.altKey;
+
+      if (DEBUG) {
+        console.log('🔍 DROP DEBUG - Replace Mode Check:', {
+          isAltPressed: isCmdPressedRef.current,
+          dropEventAltKey: e.altKey,
+          replaceMode,
+          finalSnappedBar,
+          pitch,
+          placementsCount: placements.length,
+          soundId
+        });
+      }
+
+      if (replaceMode) {
+        // Find existing placement where drop position overlaps with icon's visual area
+        // Icon is 40px wide (ICON_BOX) centered on its bar position
+        // Each sixteenth is 12px (SIXTEENTH_WIDTH)
+        // So an icon at bar N visually covers approximately bars N-1 to N+2
+        const ICON_OVERLAP_RANGE = 2; // Check ±2 bars for overlap
+
+        const existingIndex = placements.findIndex(p => {
+          const barDistance = Math.abs(p.bar - finalSnappedBar);
+          const pitchMatch = p.pitch === pitch;
+          const barOverlap = barDistance <= ICON_OVERLAP_RANGE;
+
+          if (DEBUG && pitchMatch && barOverlap) {
+            console.log('🎯 FOUND OVERLAP:', {
+              existingBar: p.bar,
+              dropBar: finalSnappedBar,
+              barDistance,
+              pitch: p.pitch
+            });
+          }
+
+          return pitchMatch && barOverlap;
+        });
+
+        if (DEBUG) {
+          console.log('🔍 REPLACE MODE - Search result:', {
+            existingIndex,
+            searchedFor: { bar: finalSnappedBar, pitch },
+            totalPlacements: placements.length,
+            allPlacements: placements.map(p => ({ bar: p.bar, pitch: p.pitch, id: p.soundId }))
+          });
+        }
+
+        if (existingIndex !== -1) {
+          // Replace the sound of the existing icon while preserving all other properties
+          const updated = [...placements];
+          updated[existingIndex] = { ...updated[existingIndex], soundId };
+          setPlacements(updated);
+          onPreviewNote?.(soundId, pitch);
+
+          if (DEBUG) {
+            console.log('✅ REPLACED sound at index', existingIndex);
+          }
+
+          // Clean up and return early
+          setHoveredCell(null);
+          setIsDragging(false);
+          setDragGhost(null);
+          return;
+        }
+      }
+
+      // Normal behavior: add new placement
+      if (DEBUG) {
+        console.log('➕ ADDING new placement at bar:', finalSnappedBar, 'pitch:', pitch);
+        console.log('📋 Current placements:', placements.length, '→ New count:', placements.length + 1);
+      }
       const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 };
       setPlacements([...placements, np]);
       onPreviewNote?.(soundId, pitch);
     }
 
+    // Always clear drag state after drop
+    if (DEBUG) {
+      console.log('🧹 CLEANUP: Clearing drag state');
+    }
     setHoveredCell(null);
     setIsDragging(false);
     setDragGhost(null);
@@ -333,10 +456,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       // Center the container on the grid row
       const blockTop = rowTop - (BLOCK_HEIGHT - ROW_HEIGHT) / 2;
 
-      // Calculate bar dimensions - start bar behind icon for integrated look
-      const BAR_START_OFFSET = 30; // Start 10px before icon right edge (overlap)
+      // Calculate bar dimensions - start at icon center with fade
+      const BAR_START_OFFSET = ICON_BOX / 2; // Start at icon center (20px)
       const barWidth = Math.max(0, widthPx - BAR_START_OFFSET);
       const barVerticalOffset = (BLOCK_HEIGHT - BAR_HEIGHT) / 2;
+      const FADE_DISTANCE = ICON_BOX / 2; // Fade from center (20px) to hitbox edge (40px)
 
       // Get icon color for bar
       const barColor = sound.color || '#808080';
@@ -380,7 +504,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               width: `${ICON_BOX}px`,
               height: `${ICON_BOX}px`,
               cursor: isDragged ? 'grabbing' : (hoveredResizeIcon === index ? 'default' : 'grab'),
-              zIndex: 201
+              zIndex: 201,
+              // Allow drops from gallery to pass through to grid when dragging from gallery
+              // Check multiple sources: draggingSound prop, isDragging state, or dragGhost existence
+              pointerEvents: (draggingSound || isDragging || dragGhost) ? 'none' : 'auto'
             }}
           >
             {/* Icon centered in draggable wrapper */}
@@ -416,37 +543,39 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             }} />
           )}
 
-          {/* Duration bar trailing to the right - only show when resizing or duration > default */}
-          {(resizingPlacement?.index === index || barWidth > 0) && (
+          {/* Duration bar trailing to the right - show when resizing, has width, or hovering */}
+          {(resizingPlacement?.index === index || barWidth > 0 || hoveredResizeIcon === index) && (
             <div
               style={{
                 position: 'absolute',
                 left: `${BAR_START_OFFSET}px`,
                 top: `${barVerticalOffset}px`,
-                width: `${Math.max(barWidth, 0)}px`,
+                width: `${Math.max(barWidth, hoveredResizeIcon === index ? ICON_BOX / 2 : 0)}px`,
                 height: `${BAR_HEIGHT}px`,
-                background: `${barColor}80`,
-                borderRadius: `0 ${BAR_HEIGHT / 2}px ${BAR_HEIGHT / 2}px 0`, // Right edge semicircle
+                background: `linear-gradient(to right, transparent 0px, ${barColor}80 ${FADE_DISTANCE}px)`,
+                borderRadius: `${BAR_HEIGHT / 2}px`, // Both edges rounded (pill shape)
                 pointerEvents: 'none',
-                opacity: resizingPlacement?.index === index ? 1 : (barWidth > 0 ? 1 : 0),
+                opacity: resizingPlacement?.index === index ? 1 : (barWidth > 0 ? 1 : 0.6),
                 transition: 'opacity 0.15s ease'
               }}
             />
           )}
 
-          {/* Invisible resize zone at right edge of duration */}
+          {/* Invisible resize zone at right edge of icon/duration */}
           <div
             onMouseDown={(e) => handleResizeStart(e, index)}
             onMouseEnter={() => setHoveredResizeIcon(index)}
             onMouseLeave={() => setHoveredResizeIcon(null)}
             style={{
               position: 'absolute',
-              left: `${Math.max(30, widthPx - 15)}px`, // Move with duration end, minimum at icon edge
+              left: `${Math.max(ICON_BOX - 15, widthPx - 15)}px`, // At icon right edge minimum, extends with duration
               top: 0,
               width: '15px', // 15px hover zone width
               height: `${BLOCK_HEIGHT}px`,
               cursor: hoveredResizeIcon === index || resizingPlacement?.index === index ? 'ew-resize' : 'auto',
-              zIndex: 3,
+              zIndex: 202, // Above draggable wrapper (201) to receive mouse events
+              // Allow drops from gallery to pass through when dragging from gallery
+              pointerEvents: draggingSound ? 'none' : 'auto',
               // Debug: uncomment to see hover zone
               // background: 'rgba(255,0,0,0.2)'
             }}
@@ -486,7 +615,17 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     return (<div style={{ position: 'fixed', left: `${dragGhost.x - ICON_BOX / 2}px`, top: `${dragGhost.y - ICON_BOX / 2}px`, width: `${ICON_BOX}px`, height: `${ICON_BOX}px`, opacity: 0.85, pointerEvents: 'none', zIndex: 1000 }}><div style={{ width: '100%', height: '100%', transform: `scale(${BASE_SCALE})`, transformOrigin: 'center' }}><IconComponent /></div></div>);
   };
 
-  const handleDragEnd = () => { setDraggedPlacementIndex(null); setHoveredCell(null); setDragGhost(null); setIsDragging(false); };
+  const handleDragEnd = () => {
+    if (DEBUG) {
+      console.log('🏁 DRAG END: Clearing all drag state', { wasCmdPressed: isCmdPressedRef.current });
+    }
+    setDraggedPlacementIndex(null);
+    setHoveredCell(null);
+    setDragGhost(null);
+    setIsDragging(false);
+    // Reset CMD state when drag ends (after a small delay to ensure drop completes)
+    setTimeout(() => { isCmdPressedRef.current = false; }, 50);
+  };
   const handleDragLeave = (e: React.DragEvent) => { const rect = e.currentTarget.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) setHoveredCell(null); };
   const handleBarClick = (e: React.MouseEvent, barIndex: number) => { e.stopPropagation(); if (assignmentMode) onBarChordAssign(barIndex, assignmentMode); };
 
