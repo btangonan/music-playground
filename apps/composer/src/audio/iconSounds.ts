@@ -24,7 +24,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
       synthType: 'MonoSynth',
       options: {
         oscillator: { type: 'sawtooth' },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.5 }
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.5 }
       }
     }
   },
@@ -34,11 +34,22 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pad',
     category: 'synth',
     type: 'melodic',
+    // Grand piano - Salamander samples from CDN
     toneConfig: {
-      synthType: 'PolySynth',
+      synthType: 'Sampler',
       options: {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.5, decay: 0.3, sustain: 0.8, release: 2.0 }
+        urls: {
+          A0: "A0.mp3", C1: "C1.mp3", "D#1": "Ds1.mp3", "F#1": "Fs1.mp3",
+          A1: "A1.mp3", C2: "C2.mp3", "D#2": "Ds2.mp3", "F#2": "Fs2.mp3",
+          A2: "A2.mp3", C3: "C3.mp3", "D#3": "Ds3.mp3", "F#3": "Fs3.mp3",
+          A3: "A3.mp3", C4: "C4.mp3", "D#4": "Ds4.mp3", "F#4": "Fs4.mp3",
+          A4: "A4.mp3", C5: "C5.mp3", "D#5": "Ds5.mp3", "F#5": "Fs5.mp3",
+          A5: "A5.mp3", C6: "C6.mp3", "D#6": "Ds6.mp3", "F#6": "Fs6.mp3",
+          A6: "A6.mp3", C7: "C7.mp3", "D#7": "Ds7.mp3", "F#7": "Fs7.mp3",
+          A7: "A7.mp3", C8: "C8.mp3"
+        },
+        release: 1,
+        baseUrl: "https://tonejs.github.io/audio/salamander/"
       }
     }
   },
@@ -48,13 +59,34 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pluck',
     category: 'synth',
     type: 'melodic',
-    oneShot: true, // PluckSynth naturally decays, let dampening control sound length
+    // Rich sustained bass - deep, warm, full-bodied
+    // Sine sub-bass layer with slight harmonic richness
     toneConfig: {
-      synthType: 'PluckSynth',
+      synthType: 'PolySynth',
       options: {
-        attackNoise: 1,
-        dampening: 4000,
-        resonance: 0.7
+        oscillator: {
+          type: 'sine',        // Pure bass foundation
+          partials: [1, 0.2, 0.05, 0.02] // Subtle harmonic richness
+        },
+        envelope: {
+          attack: 0.05,        // Quick but smooth attack
+          decay: 0.3,
+          sustain: 0.85,       // Very high sustain for richness
+          release: 1.0         // Long release for smooth decay
+        },
+        filterEnvelope: {
+          attack: 0.08,
+          decay: 0.4,
+          sustain: 0.7,        // Keep filter mostly open
+          release: 0.9,
+          baseFrequency: 200,  // Low bass range
+          octaves: 2           // Moderate movement
+        },
+        filter: {
+          type: 'lowpass',
+          Q: 1,                // Minimal resonance for cleanness
+          rolloff: -24         // Steep rolloff to focus bass
+        }
       }
     }
   },
@@ -145,11 +177,35 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Sub',
     category: 'bass',
     type: 'melodic',
+    // Futuristic haunting James Blake - sizzling bass pad
+    // Rich harmonics with filter movement, maintains low-end presence
     toneConfig: {
-      synthType: 'MonoSynth',
+      synthType: 'PolySynth',
       options: {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.5, release: 0.8 }
+        oscillator: {
+          type: 'fatsquare',   // Rich harmonics for sizzle
+          count: 3,
+          spread: 20           // More detune for texture
+        },
+        envelope: {
+          attack: 0.08,        // Medium attack for pad feel
+          decay: 0.4,
+          sustain: 0.7,        // High sustain for bass presence
+          release: 1.2
+        },
+        filterEnvelope: {
+          attack: 0.1,
+          decay: 0.6,
+          sustain: 0.5,        // Moderate filter sustain
+          release: 0.8,
+          baseFrequency: 150,  // Low starting point for bass
+          octaves: 3.5         // Wide sweep for sizzle
+        },
+        filter: {
+          type: 'lowpass',
+          Q: 3,                // Some resonance for character
+          rolloff: -24         // Steeper slope to preserve bass
+        }
       }
     }
   },
@@ -164,7 +220,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
       options: {
         harmonicity: 0.5,
         modulationIndex: 5,
-        envelope: { attack: 0.01, decay: 0.3, sustain: 0.4, release: 0.8 }
+        envelope: { attack: 0.01, decay: 0.3, sustain: 0.5, release: 0.8 }
       }
     }
   },
@@ -179,7 +235,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
       synthType: 'NoiseSynth',
       options: {
         noise: { type: 'white' },
-        envelope: { attack: 1.0, decay: 0.0, sustain: 1.0, release: 0.5 }
+        envelope: { attack: 1.0, decay: 0.0, sustain: 0.4, release: 0.5 }
       }
     }
   },
@@ -188,14 +244,36 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     id: 'fx-impact',
     name: 'Impact',
     category: 'fx',
-    type: 'rhythmic',
-    oneShot: true, // sustain=0, let envelope control sound length
+    type: 'melodic',
+    // Thick James Blake-inspired pad synth
+    // Multiple detuned sawtooths for width and warmth
     toneConfig: {
-      synthType: 'MembraneSynth',
+      synthType: 'PolySynth',
       options: {
-        pitchDecay: 0.5,
-        octaves: 6,
-        envelope: { attack: 0.001, decay: 1.0, sustain: 0.0, release: 1.5 }
+        oscillator: {
+          type: 'fatsawtooth', // Built-in 3 detuned sawtooths
+          count: 3,
+          spread: 30          // 30 cents detune spread
+        },
+        envelope: {
+          attack: 0.1,        // Slow attack for pad character
+          decay: 0.3,
+          sustain: 0.7,       // High sustain for thickness
+          release: 1.5        // Long release for lush tail
+        },
+        filterEnvelope: {
+          attack: 0.2,
+          decay: 0.4,
+          sustain: 0.6,
+          release: 1.2,
+          baseFrequency: 200, // Warm low cutoff
+          octaves: 3          // Moderate filter sweep
+        },
+        filter: {
+          type: 'lowpass',
+          Q: 2,               // Slight resonance for character
+          rolloff: -24        // Steep rolloff for smoothness
+        }
       }
     }
   },
@@ -205,11 +283,35 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Sweep',
     category: 'fx',
     type: 'rhythmic',
+    // Radiohead "Everything In Its Right Place" - Prophet-5 inspired
+    // Round, smooth analog character with gentle filter movement
     toneConfig: {
-      synthType: 'Synth',
+      synthType: 'PolySynth',
       options: {
-        oscillator: { type: 'sine' },
-        envelope: { attack: 0.5, decay: 0.0, sustain: 1.0, release: 0.5 }
+        maxPolyphony: 5,      // Prophet-5 voice limit
+        oscillator: {
+          type: 'triangle',    // Rounder waveform, less harmonics
+          partials: [1, 0.3, 0.1] // Soft harmonic rolloff
+        },
+        envelope: {
+          attack: 0.08,        // Slow, gentle attack
+          decay: 0.4,
+          sustain: 0.8,        // Very high sustain for fullness
+          release: 0.8         // Long, smooth release
+        },
+        filterEnvelope: {
+          attack: 0.15,        // Very slow filter opening
+          decay: 0.8,
+          sustain: 0.6,        // Gentle sustain level
+          release: 1.5,        // Very long filter release
+          baseFrequency: 600,  // Higher base for smoothness
+          octaves: 2.5         // Moderate sweep, less extreme
+        },
+        filter: {
+          type: 'lowpass',
+          Q: 1.5,              // Minimal resonance, very smooth
+          rolloff: -24         // Steep rolloff for roundness
+        }
       }
     }
   },
@@ -236,12 +338,35 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Vocal Chop',
     category: 'fx',
     type: 'rhythmic',
-    oneShot: true, // sustain=0, let envelope control sound length
+    // Futuristic haunting James Blake - ethereal theremin-like character
+    // Bright, wavering, ghostly with wide open filter
     toneConfig: {
-      synthType: 'AMSynth',
+      synthType: 'PolySynth',
       options: {
-        harmonicity: 3,
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.0, release: 0.2 }
+        oscillator: {
+          type: 'sine',        // Pure, ethereal tone
+          count: 2,            // Subtle detune for wavering
+          spread: 8            // Small detune for shimmer
+        },
+        envelope: {
+          attack: 0.3,         // Slow attack for ghostly entrance
+          decay: 0.5,
+          sustain: 0.4,        // Medium sustain
+          release: 2.0         // Very long release for haunting tail
+        },
+        filterEnvelope: {
+          attack: 0.5,         // Very slow filter opening
+          decay: 1.0,
+          sustain: 0.8,        // Keep filter mostly open
+          release: 1.5,
+          baseFrequency: 800,  // Bright starting point
+          octaves: 2.5         // Wide sweep for theremin-like quality
+        },
+        filter: {
+          type: 'lowpass',
+          Q: 1,                // Minimal resonance for smoothness
+          rolloff: -12         // Gentle slope
+        }
       }
     }
   },
