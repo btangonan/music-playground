@@ -17,6 +17,7 @@ import { formatApiError } from '../utils/errors';
 import type { Loop, ChordCell, IconStep } from '@music/types/schemas';
 import { useToast } from '../components/ToastContext';
 import { useAuth } from '../hooks/useAuth';
+import { useUndo } from '../hooks/useUndo';
 import '../fonts.css';
 
 type GridResolution = '1/4' | '1/8' | '1/16';
@@ -37,7 +38,7 @@ export default function LoopLabView() {
   const [isAudioInitializing, setIsAudioInitializing] = useState(false);
   const [octaveOffset, setOctaveOffset] = useState(0);
 
-  const [placements, setPlacements] = useState<any[]>([]);
+  const [placements, setPlacements, undoPlacements, canUndo] = useUndo<any[]>([], 5);
 
   // Keep ref in sync with placements state for immediate access during scheduling
   useEffect(() => {
@@ -376,7 +377,30 @@ export default function LoopLabView() {
 
   useEffect(() => { if (!isPlaying) { return; } const animate = () => { const transportSeconds = Tone.Transport.seconds; const beatsPerSecond = bpm / 60; const currentBeat = (transportSeconds * beatsPerSecond) % 16; setCurrentStep(currentBeat); if (isPlaying) { requestAnimationFrame(animate); } }; const animationFrame = requestAnimationFrame(animate); return () => { cancelAnimationFrame(animationFrame); }; }, [isPlaying, bpm]);
 
-  useEffect(() => { const handleKeyPress = (event: KeyboardEvent) => { if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) { return; } if (event.code === 'Space') { event.preventDefault(); handlePlayPause(); } }; window.addEventListener('keydown', handleKeyPress); return () => window.removeEventListener('keydown', handleKeyPress); }, [isPlaying]);
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      // Space: Play/Pause
+      if (event.code === 'Space') {
+        event.preventDefault();
+        handlePlayPause();
+      }
+
+      // CMD+Z or CTRL+Z: Undo
+      if ((event.metaKey || event.ctrlKey) && event.key === 'z' && !event.shiftKey) {
+        event.preventDefault();
+        if (canUndo) {
+          undoPlacements();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [isPlaying, canUndo, undoPlacements]);
 
   useEffect(() => { return () => { if (audioEngineRef.current) { audioEngineRef.current.stop(); audioEngineRef.current.dispose(); } }; }, []);
 

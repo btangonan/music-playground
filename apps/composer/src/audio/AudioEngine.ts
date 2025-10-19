@@ -5,7 +5,7 @@ import * as Tone from 'tone'
 import { Midi } from '@tonejs/midi'
 import { ICON_SOUNDS, type IconSound } from './iconSounds'
 
-type Instrument = Tone.Synth | Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.NoiseSynth | Tone.MetalSynth | Tone.FMSynth | Tone.AMSynth
+type Instrument = Tone.Synth | Tone.PolySynth | Tone.MonoSynth | Tone.MembraneSynth | Tone.NoiseSynth | Tone.MetalSynth | Tone.FMSynth | Tone.AMSynth | Tone.Sampler
 
 // MIDI parsing types
 export interface ParsedMidiNote {
@@ -33,16 +33,22 @@ export class AudioEngine {
   /**
    * Initialize audio context and create instruments
    * Must be called from user gesture (click/tap)
+   * Preloads all Sampler instruments to avoid first-use delay
    */
   async start(): Promise<void> {
     if (this.initialized) return
 
     await Tone.start()
 
+    // Create all instruments
     for (const sound of Object.values(ICON_SOUNDS)) {
       const instrument = this.createInstrument(sound)
       this.instruments.set(sound.id, instrument)
     }
+
+    // Wait for all audio buffers to load (includes Sampler samples)
+    // This ensures piano samples are ready before first playback
+    await Tone.loaded()
 
     Tone.Transport.start()
     this.initialized = true
@@ -191,6 +197,11 @@ export class AudioEngine {
         // PluckSynth - keep monophonic (cannot be wrapped - doesn't extend Monophonic)
         // @ts-expect-error PluckSynth exists but may not be in types
         instrument = new Tone.PluckSynth(options)
+        break
+      case 'Sampler':
+        // Sampler - for sample-based instruments (e.g., grand piano)
+        // Already polyphonic by default, loads audio samples from URLs
+        instrument = new Tone.Sampler(options)
         break
       default:
         instrument = new Tone.PolySynth(Tone.Synth)

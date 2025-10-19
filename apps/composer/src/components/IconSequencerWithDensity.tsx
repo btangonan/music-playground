@@ -114,12 +114,26 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     if (!outerWrapperRef.current) return;
 
     const rect = outerWrapperRef.current.getBoundingClientRect();
-    let x = e.clientX - rect.left - WRAPPER_PADDING;
-    let y = e.clientY - rect.top - WRAPPER_PADDING;
+    const rawX = e.clientX - rect.left - WRAPPER_PADDING;
+    const rawY = e.clientY - rect.top - WRAPPER_PADDING;
     const maxX = COLUMN_WIDTH * TIME_STEPS;
     const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
-    x = Math.min(Math.max(x, 0), maxX);
-    y = Math.min(Math.max(y, 0), maxY);
+
+    // If mouse is outside the grid bounds, clear hover state and don't show preview
+    if (rawX < 0 || rawX > maxX || rawY < 0 || rawY > maxY) {
+      setHoveredCell(null);
+      // Still update drag ghost position for visual feedback
+      const soundId = dragGhost?.soundId || draggingSound;
+      if (soundId) {
+        setDragGhost({ x: e.clientX, y: e.clientY, soundId });
+        if (!isDragging) setIsDragging(true);
+      }
+      return;
+    }
+
+    // Clamp to grid bounds for edge drop handling (when in padding zone)
+    const x = Math.min(Math.max(rawX, 0), maxX);
+    const y = Math.min(Math.max(rawY, 0), maxY);
 
     const col = Math.floor(x / COLUMN_WIDTH);
     const row = Math.floor(y / ROW_HEIGHT);
@@ -150,6 +164,26 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     e.preventDefault();
     e.stopPropagation();
     if (!outerWrapperRef.current || !hoveredCell) return;
+
+    // Validate that drop position is within actual grid bounds (not just wrapper padding zone)
+    const rect = outerWrapperRef.current.getBoundingClientRect();
+    const dropX = e.clientX - rect.left - WRAPPER_PADDING;
+    const dropY = e.clientY - rect.top - WRAPPER_PADDING;
+    const maxX = COLUMN_WIDTH * TIME_STEPS;
+    const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
+
+    // Reject drops outside the inner grid bounds
+    if (dropX < 0 || dropX > maxX || dropY < 0 || dropY > maxY) {
+      if (DEBUG) {
+        console.log('🚫 DROP REJECTED - Out of bounds:', { dropX, dropY, maxX, maxY });
+      }
+      // Clean up state without placing icon
+      setHoveredCell(null);
+      setIsDragging(false);
+      setDragGhost(null);
+      setDraggedPlacementIndex(null);
+      return;
+    }
 
     // Use the EXACT position from the hover state - don't recalculate!
     const finalSnappedBar = hoveredCell.snappedBar;
