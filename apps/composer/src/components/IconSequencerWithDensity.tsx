@@ -56,7 +56,7 @@ const BASE_SCALE = 0.8;
 const BAR_HEIGHT = 12;  // Bar for duration visualization
 
 // Debug flag - set to true to enable console logs and visual debug overlays
-const DEBUG = true;
+const DEBUG = false;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
   const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange, onChordSelect, onPresetSelect } = props;
