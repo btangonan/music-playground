@@ -27,6 +27,12 @@ export class AudioEngine {
   private instruments: Map<string, Instrument>
   private initialized: boolean
 
+  // Master bus components for normalization and dynamics control
+  private masterChannel!: Tone.Channel
+  private compressor!: Tone.Compressor
+  private limiter!: Tone.Limiter
+  private hpf!: Tone.Filter | null // optional safety HPF
+
   constructor() {
     this.instruments = new Map()
     this.initialized = false
@@ -42,9 +48,36 @@ export class AudioEngine {
 
     await Tone.start()
 
-    // Create all instruments
+    // Create master bus chain with corrected signal flow
+    // Signal flow: Instrument → HPF → Compressor → Limiter → Master Channel → Destination
+    this.masterChannel = new Tone.Channel(-6).toDestination()
+
+    // Optional: gentle HPF at 32 Hz to stabilize compressor against sub-bass energy
+    this.hpf = new Tone.Filter({ type: 'highpass', frequency: 32, Q: 0.5 })
+
+    // Compressor: glue the mix and control dynamics
+    // Settings adjusted per audio engineering audit
+    this.compressor = new Tone.Compressor({
+      threshold: -20,    // Engage when signals moderately loud
+      ratio: 3,          // 3:1 compression (moderate, musical)
+      attack: 0.008,     // 8 ms - fast enough for drums, preserves transients
+      release: 0.16,     // 160 ms - smooth musical recovery
+      knee: 20           // Soft knee for gradual compression curve
+    })
+
+    // Limiter: brick-wall protection at -1.5 dB to prevent intersample peaks
+    this.limiter = new Tone.Limiter(-1.5)
+
+    // Wire master bus chain in correct order
+    if (this.hpf) this.hpf.connect(this.compressor)
+    this.compressor.connect(this.limiter)
+    this.limiter.connect(this.masterChannel)
+
+    // Create all instruments and route through master bus
     for (const sound of Object.values(ICON_SOUNDS)) {
       const instrument = this.createInstrument(sound)
+      // Connect to HPF if present, otherwise directly to compressor
+      instrument.connect(this.hpf ?? this.compressor)
       this.instruments.set(sound.id, instrument)
     }
 
@@ -166,10 +199,25 @@ export class AudioEngine {
 
   dispose(): void {
     Tone.Transport.clear(0)
+
+    // Disconnect and dispose instruments first
     for (const instrument of this.instruments.values()) {
+      try { instrument.disconnect() } catch {}
       instrument.dispose()
     }
     this.instruments.clear()
+
+    // Dispose master bus nodes in reverse order of signal flow
+    try { this.limiter?.disconnect() } catch {}
+    try { this.compressor?.disconnect() } catch {}
+    try { this.hpf?.disconnect() } catch {}
+    try { this.masterChannel?.disconnect() } catch {}
+
+    this.limiter?.dispose()
+    this.compressor?.dispose()
+    this.hpf?.dispose()
+    this.masterChannel?.dispose()
+
     this.initialized = false
   }
 
@@ -230,7 +278,7 @@ export class AudioEngine {
       instrument.volume.value = sound.volume
     }
 
-    instrument.toDestination()
+    // Instruments now connect to master bus in start() method, not directly to destination
     return instrument
   }
 }

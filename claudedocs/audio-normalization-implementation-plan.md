@@ -85,7 +85,7 @@ Instrument → Destination (no processing)
 
 **New Signal Flow:**
 ```
-Instrument → Limiter → Compressor → Master Channel → Destination
+Instrument → HPF (32 Hz) → Compressor → Limiter → Master Channel → Destination
 ```
 
 #### Step 1: Add Class Properties
@@ -99,6 +99,7 @@ export class AudioEngine {
   private masterChannel: Tone.Channel
   private compressor: Tone.Compressor
   private limiter: Tone.Limiter
+  private hpf: Tone.Filter | null // optional safety HPF
 
   constructor() {
     this.instruments = new Map()
@@ -117,21 +118,32 @@ async start(): Promise<void> {
 
   await Tone.start()
 
-  // NEW: Create master bus chain
+  // NEW: Create master bus chain with CORRECTED signal flow
+  // Signal flow: Instrument → HPF → Compressor → Limiter → Master Channel → Destination
   this.masterChannel = new Tone.Channel(-6).toDestination()
-  this.compressor = new Tone.Compressor({
-    threshold: -24,  // Engage when signals moderately loud
-    ratio: 4,        // 4:1 compression (moderate)
-    attack: 0.003,   // 3ms - catch transients fast
-    release: 0.25,   // 250ms - smooth but not pumping
-    knee: 30         // Soft knee for musicality
-  }).connect(this.masterChannel)
-  this.limiter = new Tone.Limiter(-1).connect(this.compressor)
 
-  // Create instruments and route through limiter
+  // Optional: gentle HPF at 32 Hz to stabilize compressor against sub-bass energy
+  this.hpf = new Tone.Filter({ type: 'highpass', frequency: 32, Q: 0.5 })
+
+  this.compressor = new Tone.Compressor({
+    threshold: -20,  // Engage when signals moderately loud (updated from -24)
+    ratio: 3,        // 3:1 compression (moderate, musical) (updated from 4)
+    attack: 0.008,   // 8ms - fast enough for drums, preserves transients (updated from 3ms)
+    release: 0.16,   // 160ms - smooth musical recovery (updated from 250ms)
+    knee: 20         // Soft knee for gradual compression curve (updated from 30)
+  })
+
+  this.limiter = new Tone.Limiter(-1.5)  // -1.5 dB to prevent intersample peaks (updated from -1)
+
+  // Wire master bus chain in CORRECT order (compressor BEFORE limiter)
+  if (this.hpf) this.hpf.connect(this.compressor)
+  this.compressor.connect(this.limiter)
+  this.limiter.connect(this.masterChannel)
+
+  // Create instruments and route through master bus
   for (const sound of Object.values(ICON_SOUNDS)) {
     const instrument = this.createInstrument(sound)
-    instrument.connect(this.limiter)  // NEW: Changed from toDestination()
+    instrument.connect(this.hpf ?? this.compressor)  // NEW: Route through HPF or compressor
     this.instruments.set(sound.id, instrument)
   }
 
@@ -142,12 +154,13 @@ async start(): Promise<void> {
 ```
 
 **Settings Explained:**
-- **Threshold -24 dB:** Compressor activates when mix gets moderately loud
-- **Ratio 4:1:** For every 4 dB over threshold, output increases 1 dB (gentle)
-- **Attack 3ms:** Fast enough to catch drum hits, slow enough to preserve transients
-- **Release 250ms:** Returns to normal quickly but smoothly (no pumping)
-- **Knee 30:** Gradual compression curve (musical, not abrupt)
-- **Limiter -1 dB:** Absolute ceiling, never exceeds (prevents clipping)
+- **HPF 32 Hz:** Optional high-pass filter to stabilize compressor against sub-bass energy
+- **Threshold -20 dB:** Compressor activates when mix gets moderately loud (updated from -24)
+- **Ratio 3:1:** For every 3 dB over threshold, output increases 1 dB (moderate, musical) (updated from 4:1)
+- **Attack 8ms:** Fast enough for drums, preserves transients (updated from 3ms)
+- **Release 160ms:** Smooth musical recovery without pumping (updated from 250ms)
+- **Knee 20:** Gradual compression curve (musical, not abrupt) (updated from 30)
+- **Limiter -1.5 dB:** Absolute ceiling to prevent intersample peaks on consumer DACs (updated from -1 dB)
 
 #### Step 3: Update createInstrument()
 
@@ -177,14 +190,22 @@ private createInstrument(sound: IconSound): Instrument {
 dispose(): void {
   Tone.Transport.clear(0)
 
+  // Disconnect and dispose instruments first
   for (const instrument of this.instruments.values()) {
+    try { instrument.disconnect() } catch {}
     instrument.dispose()
   }
   this.instruments.clear()
 
-  // NEW: Dispose master bus components
+  // Dispose master bus nodes in reverse order of signal flow
+  try { this.limiter?.disconnect() } catch {}
+  try { this.compressor?.disconnect() } catch {}
+  try { this.hpf?.disconnect() } catch {}
+  try { this.masterChannel?.disconnect() } catch {}
+
   this.limiter?.dispose()
   this.compressor?.dispose()
+  this.hpf?.dispose()
   this.masterChannel?.dispose()
 
   this.initialized = false
@@ -296,8 +317,9 @@ dispose(): void {
 4. Professional audio quality with controlled dynamics
 
 ✅ **Technical Metrics:**
-- Peak level ≤ -1 dBFS (limiter working)
+- Peak level ≤ -1.5 dBFS (limiter working, prevents intersample peaks)
 - RMS level -14 to -18 dB (good loudness)
+- LUFS-I around -16 (reference target for integrated loudness)
 - Dynamic range 6-12 dB (not over-compressed)
 - THD <0.1% (no digital clipping)
 

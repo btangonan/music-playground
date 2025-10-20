@@ -93,10 +93,12 @@ Piano, Riser, Vocal Chop: -12 dB (quietest)
 
 ### Phase 2: Master Bus with Dynamics Processing
 
-**New Signal Flow:**
+**New Signal Flow (CORRECTED):**
 ```
-All Instruments → Limiter → Compressor → Master Channel → Destination
+All Instruments → HPF (32 Hz) → Compressor → Limiter → Master Channel → Destination
 ```
+
+**Note:** Original plan incorrectly showed Limiter → Compressor. Corrected per audio engineering review - limiter MUST be last in chain for final peak protection.
 
 **Components:**
 
@@ -104,17 +106,23 @@ All Instruments → Limiter → Compressor → Master Channel → Destination
    - Volume: -6 dB (headroom)
    - Purpose: Single control point for all audio
 
-2. **Compressor (Tone.Compressor)**
-   - Threshold: -24 dB
-   - Ratio: 4:1
-   - Attack: 0.003s (fast)
-   - Release: 0.25s (medium)
-   - Knee: 30 (soft)
-   - Purpose: Glue mix, control dynamics, prevent transient clipping
+2. **High-Pass Filter (Tone.Filter)** - ADDED
+   - Type: highpass
+   - Frequency: 32 Hz
+   - Q: 0.5
+   - Purpose: Stabilize compressor detector against sub-bass energy
 
-3. **Limiter (Tone.Limiter)**
-   - Threshold: -1 dB
-   - Purpose: Brick-wall protection, absolute clipping prevention
+3. **Compressor (Tone.Compressor)** - UPDATED SETTINGS
+   - Threshold: -20 dB (updated from -24)
+   - Ratio: 3:1 (updated from 4:1)
+   - Attack: 0.008s / 8ms (updated from 0.003s)
+   - Release: 0.16s / 160ms (updated from 0.25s)
+   - Knee: 20 (updated from 30)
+   - Purpose: Glue mix, control dynamics, preserve transients
+
+4. **Limiter (Tone.Limiter)** - UPDATED CEILING
+   - Threshold: -1.5 dB (updated from -1 dB)
+   - Purpose: Brick-wall protection, prevent intersample peaks on consumer DACs
 
 **Implementation Changes:**
 

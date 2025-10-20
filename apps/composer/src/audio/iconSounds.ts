@@ -21,7 +21,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Lead',
     category: 'synth',
     type: 'melodic',
-    volume: -9, // Balanced synth level
+    volume: -12, // Normalized for master bus dynamics
     toneConfig: {
       synthType: 'MonoSynth',
       options: {
@@ -36,7 +36,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pad',
     category: 'synth',
     type: 'melodic',
-    volume: -12, // Piano needs to be audible
+    volume: -6, // Normalized for master bus dynamics (piano samples - louder for melodic lead)
     // Grand piano - Salamander samples from CDN
     toneConfig: {
       synthType: 'Sampler',
@@ -62,7 +62,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Pluck',
     category: 'synth',
     type: 'melodic',
-    volume: -9, // Balanced synth level
+    volume: -12, // Normalized for master bus dynamics
     // Rich sustained bass - deep, warm, full-bodied
     // Sine sub-bass layer with slight harmonic richness
     toneConfig: {
@@ -100,7 +100,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Arp',
     category: 'synth',
     type: 'melodic',
-    volume: -9, // Balanced synth level
+    volume: -12, // Normalized for master bus dynamics
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'Synth',
@@ -117,7 +117,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Kick',
     category: 'drum',
     type: 'rhythmic',
-    volume: 0, // Boosted - was too soft
+    volume: -6, // Normalized for master bus dynamics
     toneConfig: {
       synthType: 'MembraneSynth',
       options: {
@@ -133,7 +133,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Snare',
     category: 'drum',
     type: 'rhythmic',
-    volume: -3, // Punchy drum level
+    volume: -9, // Normalized for master bus dynamics
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
@@ -149,7 +149,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Hi-hat',
     category: 'drum',
     type: 'rhythmic',
-    volume: -6, // Audible but not overpowering
+    volume: -12, // Normalized for master bus dynamics
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MetalSynth',
@@ -169,7 +169,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Clap',
     category: 'drum',
     type: 'rhythmic',
-    volume: -3, // Punchy drum level
+    volume: -9, // Normalized for master bus dynamics
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',
@@ -186,7 +186,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Sub',
     category: 'bass',
     type: 'melodic',
-    volume: -3, // Strong bass foundation
+    volume: -9, // Normalized for master bus dynamics
     // Deep sub bass - dark and low-frequency focused
     // Minimal harmonics for pure low-end
     toneConfig: {
@@ -224,7 +224,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Wobble',
     category: 'bass',
     type: 'melodic',
-    volume: -3, // Strong bass foundation (was too soft at -9)
+    volume: -9, // Normalized for master bus dynamics
     toneConfig: {
       synthType: 'FMSynth',
       options: {
@@ -241,7 +241,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Riser',
     category: 'fx',
     type: 'rhythmic',
-    volume: -12, // Subtle but audible effect
+    volume: -15, // Normalized for master bus dynamics
     toneConfig: {
       synthType: 'NoiseSynth',
       options: {
@@ -256,7 +256,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Impact',
     category: 'fx',
     type: 'melodic',
-    volume: -9, // Balanced pad level
+    volume: -12, // Normalized for master bus dynamics
     // Thick James Blake-inspired pad synth
     // Multiple detuned sawtooths for width and warmth
     toneConfig: {
@@ -295,7 +295,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Sweep',
     category: 'fx',
     type: 'rhythmic',
-    volume: -9, // Balanced melodic FX
+    volume: -12, // Normalized for master bus dynamics
     // Radiohead "Everything In Its Right Place" - Prophet-5 inspired
     // Round, smooth analog character with gentle filter movement
     toneConfig: {
@@ -334,7 +334,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Glitch',
     category: 'fx',
     type: 'rhythmic',
-    volume: -6, // Percussive effect, needs punch
+    volume: -15, // Normalized for master bus dynamics
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'MetalSynth',
@@ -352,7 +352,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Vocal Chop',
     category: 'fx',
     type: 'rhythmic',
-    volume: -12, // Ethereal but audible
+    volume: -9, // Normalized for master bus dynamics (increased for slow attack/release)
     // Futuristic haunting James Blake - ethereal theremin-like character
     // Bright, wavering, ghostly with wide open filter
     toneConfig: {
@@ -391,7 +391,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Noise',
     category: 'fx',
     type: 'rhythmic',
-    volume: -9, // Balanced noise burst
+    volume: -15, // Normalized for master bus dynamics
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',

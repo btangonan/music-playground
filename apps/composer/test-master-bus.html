@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Master Bus Test</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+    button { padding: 10px 20px; margin: 5px; background: #333; color: #0f0; border: 1px solid #0f0; cursor: pointer; }
+    button:hover { background: #0f0; color: #000; }
+    #output { margin-top: 20px; white-space: pre-wrap; }
+    .pass { color: #0f0; }
+    .fail { color: #f00; }
+    .warn { color: #ff0; }
+  </style>
+</head>
+<body>
+  <h1>Master Bus Audio Analysis Test</h1>
+  <button id="testBtn">Start Test</button>
+  <div id="output"></div>
+
+  <script type="module">
+    import * as Tone from 'https://cdn.skypack.dev/tone@14.8.49';
+
+    const output = document.getElementById('output');
+    const log = (msg, type = 'info') => {
+      const span = document.createElement('span');
+      span.className = type;
+      span.textContent = msg + '\n';
+      output.appendChild(span);
+    };
+
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      output.textContent = '';
+      log('=== Master Bus Test Starting ===');
+
+      try {
+        await Tone.start();
+        log('✓ Tone.js audio context started', 'pass');
+
+        // Create master bus (same as AudioEngine.ts)
+        const masterChannel = new Tone.Channel(-6).toDestination();
+        log('✓ Master Channel created (-6 dB)', 'pass');
+
+        const hpf = new Tone.Filter({ type: 'highpass', frequency: 32, Q: 0.5 });
+        log('✓ HPF created (32 Hz)', 'pass');
+
+        const compressor = new Tone.Compressor({
+          threshold: -20,
+          ratio: 3,
+          attack: 0.008,
+          release: 0.16,
+          knee: 20
+        });
+        log('✓ Compressor created (threshold: -20 dB, ratio: 3:1)', 'pass');
+
+        const limiter = new Tone.Limiter(-1.5);
+        log('✓ Limiter created (ceiling: -1.5 dB)', 'pass');
+
+        // Wire chain
+        hpf.connect(compressor);
+        compressor.connect(limiter);
+        limiter.connect(masterChannel);
+        log('✓ Signal chain connected: HPF → Compressor → Limiter → Master', 'pass');
+
+        // Create test synth
+        const testSynth = new Tone.Synth().connect(hpf);
+        log('✓ Test synth created and connected to HPF', 'pass');
+
+        // Verify connections using Tone.js internal properties
+        log('\n=== Connection Verification ===');
+
+        // Check HPF connections
+        if (hpf.output && hpf.output._internalChannels.length > 0) {
+          log('✓ HPF has output connections', 'pass');
+        } else {
+          log('✗ HPF has no output connections', 'fail');
+        }
+
+        // Check compressor connections
+        if (compressor.output && compressor.output._internalChannels.length > 0) {
+          log('✓ Compressor has output connections', 'pass');
+        } else {
+          log('✗ Compressor has no output connections', 'fail');
+        }
+
+        // Check limiter connections
+        if (limiter.output && limiter.output._internalChannels.length > 0) {
+          log('✓ Limiter has output connections', 'pass');
+        } else {
+          log('✗ Limiter has no output connections', 'fail');
+        }
+
+        // Test audio playback
+        log('\n=== Audio Playback Test ===');
+        log('Playing C4 note for 1 second...');
+
+        const meter = new Tone.Meter();
+        limiter.connect(meter);
+
+        testSynth.triggerAttackRelease('C4', '1n', Tone.now(), 0.8);
+
+        // Monitor peak level
+        setTimeout(() => {
+          const peak = meter.getValue();
+          log(`Peak level at limiter output: ${peak.toFixed(2)} dB`);
+
+          if (peak > -1.5) {
+            log('⚠ WARNING: Peak exceeds limiter ceiling!', 'warn');
+          } else if (peak < -40) {
+            log('✗ FAIL: Signal too quiet, master bus may not be connected', 'fail');
+          } else {
+            log('✓ PASS: Signal present and within limiter ceiling', 'pass');
+          }
+
+          // Cleanup
+          testSynth.disconnect();
+          testSynth.dispose();
+          hpf.disconnect();
+          compressor.disconnect();
+          limiter.disconnect();
+          masterChannel.disconnect();
+          meter.disconnect();
+
+          hpf.dispose();
+          compressor.dispose();
+          limiter.dispose();
+          masterChannel.dispose();
+          meter.dispose();
+
+          log('\n=== Test Complete ===');
+        }, 1500);
+
+      } catch (err) {
+        log('✗ ERROR: ' + err.message, 'fail');
+        console.error(err);
+      }
+    });
+  </script>
+</body>
+</html>
