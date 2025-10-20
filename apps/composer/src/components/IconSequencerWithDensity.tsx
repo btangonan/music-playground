@@ -506,8 +506,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               cursor: isDragged ? 'grabbing' : (hoveredResizeIcon === index ? 'default' : 'grab'),
               zIndex: 201,
               // Allow drops from gallery to pass through to grid when dragging from gallery
-              // Check multiple sources: draggingSound prop, isDragging state, or dragGhost existence
-              pointerEvents: (draggingSound || isDragging || dragGhost) ? 'none' : 'auto'
+              // When dragging a placed icon, keep pointer events on THAT icon, disable others
+              pointerEvents: (draggedPlacementIndex !== index && (draggingSound || isDragging || dragGhost)) ? 'none' : 'auto'
             }}
           >
             {/* Icon centered in draggable wrapper */}
