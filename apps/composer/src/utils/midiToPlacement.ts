@@ -45,13 +45,105 @@ function mapGmDrumToSoundId(midiNote: number): string {
 }
 
 /**
+ * Map GM program number (0-127) to soundId based on user sound classifications
+ * Uses actual listening notes to intelligently route instruments to our 16 sounds
+ *
+ * Key mappings based on user feedback:
+ * - Piano (0-2) → pad (our grand piano Sampler)
+ * - Bells/Chromatic (8-15) → pluck (clean sine) or vocal (bell-like)
+ * - Bass (32-39) → sub or wobble (synth bass)
+ * - Lead Sawtooth (81) → impact (harsh sawtooth)
+ * - Square Lead (80, 82) → arp (video game synth)
+ * - Synth Pads (88-95) → lead (soft round) or sweep (warm)
+ * - FX (96-103, 120-127) → riser, noise, glitch
+ */
+function mapGmProgramToSoundId(program: number, pitch: number): string {
+  // PIANO (0-7) → Our only real piano sound
+  if (program >= 0 && program <= 7) {
+    return 'pad' // Grand piano Sampler
+  }
+
+  // CHROMATIC PERCUSSION (8-15) → Bell-like or clean sine sounds
+  if (program >= 8 && program <= 15) {
+    // High pitches (>72) → pluck (clean sine tone at higher registers)
+    // Low/mid pitches → vocal (bell-like, ethereal)
+    return pitch >= 72 ? 'pluck' : 'vocal'
+  }
+
+  // BASS (32-39) → Synth bass sounds
+  if (program >= 32 && program <= 39) {
+    // Very low bass (<36) → sub (deep sub bass with slight pluck)
+    // Higher bass → wobble (FM synth bass)
+    return pitch < 36 ? 'sub' : 'wobble'
+  }
+
+  // STRINGS/ENSEMBLE (40-55) → Warm sustained sounds
+  if (program >= 40 && program <= 55) {
+    return 'sweep' // Round and warm like plastic tube with bite
+  }
+
+  // BRASS (56-63) → Bright melodic sounds
+  if (program >= 56 && program <= 63) {
+    return 'lead' // Soft round synth (not as harsh as impact)
+  }
+
+  // REED/PIPE (64-79) → Melodic sounds
+  if (program >= 64 && program <= 79) {
+    return 'lead' // Soft round character
+  }
+
+  // SYNTH LEAD (80-87)
+  if (program >= 80 && program <= 87) {
+    if (program === 80 || program === 82) {
+      return 'arp' // Square wave = video game synth
+    }
+    if (program === 81) {
+      return 'impact' // Sawtooth = harsh serrated knife sound
+    }
+    return 'lead' // Other leads → soft round synth
+  }
+
+  // SYNTH PAD (88-95)
+  if (program >= 88 && program <= 95) {
+    if (program === 95) {
+      return 'sweep' // Pad 8 (sweep) = warm sweep character
+    }
+    return 'lead' // Warm/soft pads → soft round synth
+  }
+
+  // SYNTH EFFECTS (96-103)
+  if (program >= 96 && program <= 103) {
+    return 'riser' // FX sounds → white noise riser
+  }
+
+  // ETHNIC (104-111) → Plucked/melodic
+  if (program >= 104 && program <= 111) {
+    return 'pluck' // Clean sine character
+  }
+
+  // PERCUSSIVE (112-119) → Rhythmic sounds
+  if (program >= 112 && program <= 119) {
+    return 'noise' // Can act as snare for electro
+  }
+
+  // SOUND EFFECTS (120-127)
+  if (program >= 120 && program <= 127) {
+    return 'riser' // White noise riser and FX
+  }
+
+  // Fallback: shouldn't reach here
+  return 'lead'
+}
+
+/**
  * Map MIDI note number (0-127) to soundId string
  * Uses pitch ranges to intelligently assign icon sounds
  * NOTE: UI uses short soundIds: 'lead', 'kick', 'sub' (not 'synth-lead', 'drum-kick', 'bass-sub')
  *
- * UPDATED: Channel-aware mapping
+ * UPDATED: GM program-aware mapping
  * - Channel 9 (GM drums) → routes to drum soundIds
- * - Other channels → pitch-based melodic mapping
+ * - GM program available → uses program semantics (NEW!)
+ * - No program → pitch-based melodic mapping (fallback)
  */
 function mapMidiToSoundId(midiNote: number, channel?: number, program?: number): string {
   // Phase 1: Detect GM drums channel (0-indexed channel 9)
@@ -59,7 +151,12 @@ function mapMidiToSoundId(midiNote: number, channel?: number, program?: number):
     return mapGmDrumToSoundId(midiNote)
   }
 
-  // Existing pitch-only mapping as fallback for melodic
+  // Phase 2: Use GM program semantics if available (NEW!)
+  if (program !== undefined && program >= 0 && program <= 127) {
+    return mapGmProgramToSoundId(program, midiNote)
+  }
+
+  // Phase 3: Pitch-only mapping as fallback for melodic (when no program info)
   if (midiNote < 36) return 'sub'
   if (midiNote <= 47) return 'wobble'
   if (midiNote <= 59) return 'pad'
@@ -75,7 +172,12 @@ function mapMidiToSoundId(midiNote: number, channel?: number, program?: number):
  * Truncates to 4-bar grid (0-63 sixteenth notes)
  */
 export function midiClipToPlacements(clip: ParsedMidiClip): Placement[] {
-  const { bpm, notes } = clip
+  const { bpm, notes, timeSignature } = clip
+
+  // Warn if non-4/4 time signature (our sequencer assumes 4/4)
+  if (timeSignature && timeSignature !== '4/4') {
+    console.warn(`[MIDI] Time signature ${timeSignature} detected, but sequencer assumes 4/4. Bar boundaries may be incorrect.`)
+  }
 
   // Find minimum note time to normalize all notes to start at t=0
   // This handles MIDI files that have silence/offset before the first note
