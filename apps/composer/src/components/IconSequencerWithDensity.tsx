@@ -36,7 +36,7 @@ const ROW_HEIGHT = 10;
 const TIME_STEPS = 16;
 const BARS = 4;
 const STEPS_PER_BAR = 4;
-const TOTAL_SEMITONES = 36;
+const TOTAL_SEMITONES = 37; // 3 octaves + 1 to ensure C notes at both top and bottom
 const BASE_MIDI = 48;
 
 const EIGHTH_WIDTH = COLUMN_WIDTH / 2;  // 24
@@ -65,8 +65,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const octaveOffset = externalOctaveOffset !== undefined ? externalOctaveOffset : internalOctaveOffset;
   const setOctaveOffset = onOctaveOffsetChange || setInternalOctaveOffset;
 
-  const BASE_TOP_MIDI = 83;
-  const BASE_BOTTOM_MIDI = 48;
+  const BASE_BOTTOM_MIDI = 36; // C2 - 3 octaves span
+  const BASE_TOP_MIDI = 72; // C5 - exactly 3 octaves above C2
   const topMidi = BASE_TOP_MIDI + octaveOffset * 12;
   const baseMidi = BASE_BOTTOM_MIDI + octaveOffset * 12;
 
@@ -146,9 +146,14 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
     if (!outerWrapperRef.current) return;
 
+    // Calculate grid padding offset
+    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
+    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
+    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
+
     const rect = outerWrapperRef.current.getBoundingClientRect();
     const rawX = e.clientX - rect.left - WRAPPER_PADDING;
-    const rawY = e.clientY - rect.top - WRAPPER_PADDING;
+    const rawY = e.clientY - rect.top - WRAPPER_PADDING - gridPaddingTop;
     const maxX = COLUMN_WIDTH * TIME_STEPS;
     const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
 
@@ -210,10 +215,15 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       return;
     }
 
+    // Calculate grid padding offset
+    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
+    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
+    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
+
     // Validate that drop position is within actual grid bounds (not just wrapper padding zone)
     const rect = outerWrapperRef.current.getBoundingClientRect();
     const dropX = e.clientX - rect.left - WRAPPER_PADDING;
-    const dropY = e.clientY - rect.top - WRAPPER_PADDING;
+    const dropY = e.clientY - rect.top - WRAPPER_PADDING - gridPaddingTop;
     const maxX = COLUMN_WIDTH * TIME_STEPS;
     const maxY = ROW_HEIGHT * TOTAL_SEMITONES;
 
@@ -407,18 +417,29 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const renderGrid = () => {
     const rows = [];
-    for (let row = 0; row < TOTAL_SEMITONES; row++) {
-      const midi = topMidi - row;
-      const pc = midiToPitchClass(midi);
+    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
+    const totalRows = Math.ceil(containerHeight / ROW_HEIGHT); // Fill entire container height
+    const paddingRows = totalRows - TOTAL_SEMITONES;
+    const topPaddingRows = Math.floor(paddingRows / 2);
+
+    for (let row = 0; row < totalRows; row++) {
+      // Calculate actual grid row (offset by padding rows)
+      const gridRow = row - topPaddingRows;
+      const isPlayableRow = gridRow >= 0 && gridRow < TOTAL_SEMITONES;
+      const midi = isPlayableRow ? topMidi - gridRow : -1;
+      const pc = isPlayableRow ? midiToPitchClass(midi) : 0;
+
       let zoneBg = '#FFFFFF';
-      if (isDragging) { if (row < 12) zoneBg = 'rgba(224, 242, 254, 0.3)'; else if (row >= 24) zoneBg = 'rgba(255, 251, 235, 0.3)'; }
+      if (isDragging && isPlayableRow) { if (gridRow < 12) zoneBg = 'rgba(224, 242, 254, 0.3)'; else if (gridRow >= 24) zoneBg = 'rgba(255, 251, 235, 0.3)'; }
+
       const cells = [];
       for (let col = 0; col < TIME_STEPS; col++) {
         const barIndex = Math.floor(col / STEPS_PER_BAR);
         const chord = barChords[barIndex];
         let barChordColor = 'transparent';
         if (chord) { const color = chordColors[chord]; const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); barChordColor = `rgba(${r}, ${g}, ${b}, 0.2)`; }
-        let densityColor = 'transparent'; if (chord) { const alpha = densityAlpha(pc, chord); const color = chordColors[chord]; const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); densityColor = `rgba(${r}, ${g}, ${b}, ${alpha})`; }
+        let densityColor = 'transparent';
+        if (chord && isPlayableRow) { const alpha = densityAlpha(pc, chord); const color = chordColors[chord]; const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); densityColor = `rgba(${r}, ${g}, ${b}, ${alpha})`; }
         const subdivisionLines: number[] = [];
         if (resolution === '1/4') { subdivisionLines.push(0); } else if (resolution === '1/8') { subdivisionLines.push(0, COLUMN_WIDTH / 2); } else if (resolution === '1/16') { subdivisionLines.push(0, SIXTEENTH_WIDTH, COLUMN_WIDTH / 2, SIXTEENTH_WIDTH * 3); }
         cells.push(
@@ -437,6 +458,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const renderPlacements = () => {
     const BLOCK_HEIGHT = 40; // Container height (for icon)
 
+    // Calculate grid padding offset
+    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
+    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
+    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
+
     return placements.map((p, index) => {
       const sound = SOUND_ICONS.find(s => s.id === p.soundId);
       if (!sound) return null;
@@ -451,7 +477,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const cellCenterX = p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
       const startX = cellCenterX - ICON_BOX / 2;
       const widthPx = (p.duration16 ?? 1) * SIXTEENTH_WIDTH;
-      const rowTop = row * ROW_HEIGHT;
+      const rowTop = row * ROW_HEIGHT + gridPaddingTop;
 
       // Center the container on the grid row
       const blockTop = rowTop - (BLOCK_HEIGHT - ROW_HEIGHT) / 2;
@@ -591,7 +617,13 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const hoverWidth = divisor * SIXTEENTH_WIDTH;  // Grid cell width based on resolution
     const cellStartBar = hoveredCell.snappedBar;
     const iconLeftX = cellStartBar * SIXTEENTH_WIDTH;
-    const rowTop = hoveredCell.row * ROW_HEIGHT;
+
+    // Calculate grid padding offset (same as renderPlacements)
+    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
+    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
+    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
+
+    const rowTop = hoveredCell.row * ROW_HEIGHT + gridPaddingTop;
 
     if (DEBUG && resolution === '1/16') {
       console.log('📦 HOVER:', { cellStartBar, iconLeftX, hoverWidth, divisor, SIXTEENTH_WIDTH });
@@ -629,66 +661,114 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const handleDragLeave = (e: React.DragEvent) => { const rect = e.currentTarget.getBoundingClientRect(); if (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom) setHoveredCell(null); };
   const handleBarClick = (e: React.MouseEvent, barIndex: number) => { e.stopPropagation(); if (assignmentMode) onBarChordAssign(barIndex, assignmentMode); };
 
+  // Scroll wheel pitch control with throttling
+  useEffect(() => {
+    const wrapper = outerWrapperRef.current;
+    if (!wrapper) return;
+
+    let accumulatedDelta = 0;
+    const THRESHOLD = 40; // Require ~2-3 scroll notches before changing octave
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault(); // Prevent page scroll
+
+      accumulatedDelta += e.deltaY;
+
+      // Only change octave when accumulated delta exceeds threshold
+      if (Math.abs(accumulatedDelta) >= THRESHOLD) {
+        if (accumulatedDelta > 0) {
+          // Scroll down = pitch down = decrease octave (down to -3)
+          setOctaveOffset(o => Math.max(o - 1, -3));
+        } else {
+          // Scroll up = pitch up = increase octave (up to +3)
+          setOctaveOffset(o => Math.min(o + 1, 3));
+        }
+        accumulatedDelta = 0; // Reset after change
+      }
+    };
+
+    // Add listener with passive: false to allow preventDefault
+    wrapper.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      wrapper.removeEventListener('wheel', handleWheel);
+    };
+  }, [setOctaveOffset]);
+
+  // Render C note pitch markers on the left side
+  const renderPitchMarkers = () => {
+    const cNotes = [];
+
+    // Find all C notes within the visible range (baseMidi to topMidi)
+    // C notes are MIDI numbers where (midi % 12) === 0
+    // MIDI 24=C1, 36=C2, 48=C3, 60=C4, 72=C5, 84=C6, etc.
+
+    for (let midi = 0; midi <= 127; midi += 12) {
+      // Only show C notes that are fully within the grid range
+      if (midi >= baseMidi && midi <= topMidi) {
+        const octave = Math.floor((midi - 12) / 12); // MIDI 24=C1, 36=C2, 48=C3, etc.
+        const noteName = `C${octave}`;
+        const rowFromTop = topMidi - midi; // Position from top of grid
+        const yPosition = rowFromTop * ROW_HEIGHT;
+
+        // Add all C notes within the visible range
+        if (yPosition >= 0 && yPosition <= ROW_HEIGHT * TOTAL_SEMITONES - ROW_HEIGHT) {
+          cNotes.push({ midi, noteName, yPosition });
+        }
+      }
+    }
+
+    return (
+      <div className="relative flex-shrink-0" style={{ width: '32px', height: `${ROW_HEIGHT * TOTAL_SEMITONES}px` }}>
+        {cNotes.map(({ midi, noteName, yPosition }) => (
+          <div
+            key={midi}
+            className="absolute text-xs font-medium text-gray-500"
+            style={{
+              top: `${yPosition}px`,
+              right: '4px',
+              lineHeight: `${ROW_HEIGHT}px`,
+              height: `${ROW_HEIGHT}px`,
+              userSelect: 'none'
+            }}
+          >
+            {noteName}
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="flex flex-row">
-      {/* Left sidebar: Up arrow + Down arrow aligned with sequencer edges */}
-      <div className="flex flex-col items-center justify-between mr-2" style={{ height: `${ROW_HEIGHT * TOTAL_SEMITONES}px` }}>
-        {/* Octave Up */}
-        <button
-          onClick={() => setOctaveOffset(o => Math.min(o + 1, 3))}
-          disabled={octaveOffset >= 3}
-          style={{
-            fontSize: '20px',
-            opacity: octaveOffset < 3 ? 1 : 0.3,
-            cursor: octaveOffset < 3 ? 'pointer' : 'not-allowed',
-            background: 'none',
-            border: 'none',
-            padding: '4px',
-            color: '#000000',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}
-          title={`Octave Up (C${3 + octaveOffset} to B${5 + octaveOffset})`}
-        >
-          ↑
-        </button>
-
-        {/* Octave Down */}
-        <button
-          onClick={() => setOctaveOffset(o => Math.max(o - 1, -3))}
-          disabled={octaveOffset <= -3}
-          style={{
-            fontSize: '20px',
-            opacity: octaveOffset > -3 ? 1 : 0.3,
-            cursor: octaveOffset > -3 ? 'pointer' : 'not-allowed',
-            background: 'none',
-            border: 'none',
-            padding: '4px',
-            color: '#000000',
-            width: '32px',
-            height: '32px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0
-          }}
-          title={`Octave Down (C${3 + octaveOffset} to B${5 + octaveOffset})`}
-        >
-          ↓
-        </button>
+      {/* C note pitch markers - aligned with sequencer grid */}
+      <div
+        className="relative"
+        style={{
+          width: '32px',
+          height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px`,
+          paddingTop: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`,
+          paddingBottom: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`
+        }}
+      >
+        {renderPitchMarkers()}
       </div>
 
-      {/* Sequencer grid */}
-      <div ref={outerWrapperRef} className="relative flex items-center justify-center" style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2}px` }} onDragOver={!assignmentMode ? handleDragOver : undefined} onDragLeave={!assignmentMode ? handleDragLeave : undefined} onDrop={!assignmentMode ? handleDrop : undefined} onDragEnd={!assignmentMode ? handleDragEnd : undefined}>
-        <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES}px`, userSelect: 'none', flexShrink: 0 }}>
+      {/* Sequencer grid with scroll-based pitch control */}
+      <div
+        ref={outerWrapperRef}
+        className="relative flex items-center justify-center"
+        style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+        onDragOver={!assignmentMode ? handleDragOver : undefined}
+        onDragLeave={!assignmentMode ? handleDragLeave : undefined}
+        onDrop={!assignmentMode ? handleDrop : undefined}
+        onDragEnd={!assignmentMode ? handleDragEnd : undefined}
+      >
+        <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0 }}>
           {renderGrid()}
           {renderHoverOverlay()}
           {!assignmentMode && renderPlacements()}
-          {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#FFD11A', boxShadow: '0 0 8px rgba(255, 209, 26, 0.8)', pointerEvents: 'none', zIndex: 150 }} />)}
+          {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#000000', pointerEvents: 'none', zIndex: 150 }} />)}
 
           {/* Clickable bar overlays for chord assignment mode */}
           {assignmentMode && (
