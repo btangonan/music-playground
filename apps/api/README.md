@@ -122,6 +122,95 @@ API will be available at `http://localhost:3001`
 **POST /api/loops/:id/duplicate** (requires JWT)
 - Creates a copy of the loop owned by the authenticated user
 
+## Idempotency
+
+### What is Idempotency?
+
+Idempotency ensures that retrying a POST request (e.g., due to network failure) doesn't create duplicate resources. If you retry a request with the same `Idempotency-Key`, the API returns the cached response instead of creating a duplicate.
+
+### Supported Endpoints
+
+The following POST endpoints support idempotency:
+- `POST /api/loops` - Create loop
+- `POST /api/loops/:id/duplicate` - Duplicate loop
+
+### Usage
+
+Include an `Idempotency-Key` header with a UUID v4 value:
+
+```bash
+curl -X POST http://localhost:3001/api/loops \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <token>" \
+  -H "Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000" \
+  -d '{
+    "name": "My Loop",
+    "bars": 4,
+    "color": "#FFD11A",
+    "bpm": 120,
+    "chordProgression": [],
+    "iconSequence": [],
+    "schemaVersion": 1,
+    "updatedAt": "2025-01-15T12:00:00Z"
+  }'
+```
+
+### Client Example
+
+Generate a UUID v4 for each unique request:
+
+```typescript
+import { randomUUID } from 'crypto' // Node.js
+// or
+const uuid = crypto.randomUUID() // Browser
+
+async function createLoop(loopData: Loop) {
+  const idempotencyKey = randomUUID()
+
+  const response = await fetch('/api/loops', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Idempotency-Key': idempotencyKey,
+    },
+    body: JSON.stringify(loopData),
+  })
+
+  return response.json()
+}
+```
+
+### Key Properties
+
+- **Optional**: Idempotency-Key header is optional. Requests without it are processed normally.
+- **TTL**: Idempotency keys expire after 24 hours.
+- **User-scoped**: Keys are scoped per user for security (prevents cross-user replay attacks).
+- **Format**: Must be a valid UUID v4. Invalid format returns 400 error.
+
+### Behavior
+
+**First Request** (creates resource):
+```bash
+POST /api/loops
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+→ 201 Created { loop: { id: "abc123", ... } }
+```
+
+**Retry** (returns cached response):
+```bash
+POST /api/loops
+Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
+→ 201 Created { loop: { id: "abc123", ... } }  # Same response, no duplicate created
+```
+
+**Different Key** (creates new resource):
+```bash
+POST /api/loops
+Idempotency-Key: 660e9500-f39c-52e5-b827-557766551111
+→ 201 Created { loop: { id: "def456", ... } }  # New loop created
+```
+
 ## Database Schema
 
 See `src/db/schema.sql` for complete schema definition.

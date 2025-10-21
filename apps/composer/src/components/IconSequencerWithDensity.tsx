@@ -71,6 +71,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const topMidi = BASE_TOP_MIDI + octaveOffset * 12;
   const baseMidi = BASE_BOTTOM_MIDI + octaveOffset * 12;
 
+  // Shared grid padding calculation - used for pitch markers, placements, and hover overlay
+  const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
+  const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
+  const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
+
   const [placements, setPlacements] = useState<IconPlacement[]>([]);
   const isSyncingFromExternal = useRef(false);
   const lastPropagatedRef = useRef<IconPlacement[] | null>(null);
@@ -147,11 +152,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
     if (!outerWrapperRef.current) return;
 
-    // Calculate grid padding offset
-    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
-    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
-    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
-
     const rect = outerWrapperRef.current.getBoundingClientRect();
     const rawX = e.clientX - rect.left - WRAPPER_PADDING;
     const rawY = e.clientY - rect.top - WRAPPER_PADDING - gridPaddingTop;
@@ -215,11 +215,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       if (DEBUG) console.log('⚠️ DROP REJECTED - missing refs:', { hasWrapper: !!outerWrapperRef.current, hasHoveredCell: !!hoveredCell });
       return;
     }
-
-    // Calculate grid padding offset
-    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
-    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
-    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
 
     // Validate that drop position is within actual grid bounds (not just wrapper padding zone)
     const rect = outerWrapperRef.current.getBoundingClientRect();
@@ -459,11 +454,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const renderPlacements = () => {
     const BLOCK_HEIGHT = 40; // Container height (for icon)
 
-    // Calculate grid padding offset
-    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
-    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
-    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
-
     return placements.map((p, index) => {
       const sound = SOUND_ICONS.find(s => s.id === p.soundId);
       if (!sound) return null;
@@ -619,11 +609,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const cellStartBar = hoveredCell.snappedBar;
     const iconLeftX = cellStartBar * SIXTEENTH_WIDTH;
 
-    // Calculate grid padding offset (same as renderPlacements)
-    const gridContentHeight = TOTAL_SEMITONES * ROW_HEIGHT;
-    const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
-    const gridPaddingTop = (containerHeight - gridContentHeight) / 2;
-
     const rowTop = hoveredCell.row * ROW_HEIGHT + gridPaddingTop;
 
     if (DEBUG && resolution === '1/16') {
@@ -696,7 +681,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     };
   }, [setOctaveOffset]);
 
-  // Render C note pitch markers on the left side
+  // Render C note pitch markers - positioned absolutely inside grid container
   const renderPitchMarkers = () => {
     const cNotes = [];
 
@@ -710,17 +695,27 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         const octave = Math.floor((midi - 12) / 12); // MIDI 24=C1, 36=C2, 48=C3, etc.
         const noteName = `C${octave}`;
         const rowFromTop = topMidi - midi; // Position from top of grid
-        const yPosition = rowFromTop * ROW_HEIGHT;
+        const yPosition = rowFromTop * ROW_HEIGHT + gridPaddingTop;
 
         // Add all C notes within the visible range
-        if (yPosition >= 0 && yPosition <= ROW_HEIGHT * TOTAL_SEMITONES - ROW_HEIGHT) {
+        if (rowFromTop >= 0 && rowFromTop < TOTAL_SEMITONES) {
           cNotes.push({ midi, noteName, yPosition });
         }
       }
     }
 
     return (
-      <div className="relative flex-shrink-0" style={{ width: '32px', height: `${ROW_HEIGHT * TOTAL_SEMITONES}px` }}>
+      <div
+        style={{
+          position: 'absolute',
+          left: '-32px',
+          top: `${WRAPPER_PADDING}px`,
+          width: '32px',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 100
+        }}
+      >
         {cNotes.map(({ midi, noteName, yPosition }) => (
           <div
             key={midi}
@@ -743,35 +738,18 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   return (
     <div className="flex flex-row">
       {/* Sequencer grid with scroll-based pitch control */}
-      <div
-        className="relative flex items-center justify-center"
-        style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2 + 40}px` }}
-      >
-        {/* C note pitch markers - aligned with sequencer grid */}
+      <div className="relative flex flex-col items-center gap-2">
         <div
-          className="relative"
-          style={{
-            width: '40px',
-            height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px`,
-            paddingTop: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`,
-            paddingBottom: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`,
-            flexShrink: 0
-          }}
+          ref={outerWrapperRef}
+          className="relative flex items-center justify-center"
+          style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+          onDragOver={!assignmentMode ? handleDragOver : undefined}
+          onDragLeave={!assignmentMode ? handleDragLeave : undefined}
+          onDrop={!assignmentMode ? handleDrop : undefined}
+          onDragEnd={!assignmentMode ? handleDragEnd : undefined}
         >
+          {/* C note pitch markers - absolutely positioned to left of grid */}
           {renderPitchMarkers()}
-        </div>
-
-        {/* Sequencer and chord labels container */}
-        <div className="relative flex flex-col items-center gap-2">
-          <div
-            ref={outerWrapperRef}
-            className="relative flex items-center justify-center"
-            style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
-            onDragOver={!assignmentMode ? handleDragOver : undefined}
-            onDragLeave={!assignmentMode ? handleDragLeave : undefined}
-            onDrop={!assignmentMode ? handleDrop : undefined}
-            onDragEnd={!assignmentMode ? handleDragEnd : undefined}
-          >
           <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0 }}>
             {renderGrid()}
             {renderHoverOverlay()}
@@ -807,9 +785,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               </>
             )}
           </div>
-          </div>
-          <ChordLabels barChords={barChords} />
         </div>
+        <ChordLabels barChords={barChords} />
       </div>
       {renderDragGhost()}
     </div>

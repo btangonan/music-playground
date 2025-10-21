@@ -113,6 +113,23 @@ CREATE TABLE IF NOT EXISTS song_likes (
 
 CREATE INDEX idx_song_likes_song_id ON song_likes(song_id);
 
+-- Idempotency keys (for preventing duplicate mutations)
+CREATE TABLE IF NOT EXISTS idempotency_keys (
+  key UUID PRIMARY KEY,
+  endpoint VARCHAR(255) NOT NULL,
+  method VARCHAR(10) NOT NULL,
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  status_code INTEGER NOT NULL,
+  response_body JSONB NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  expires_at TIMESTAMP NOT NULL,
+
+  CONSTRAINT check_expires CHECK (expires_at > created_at)
+);
+
+CREATE INDEX idx_idempotency_expires ON idempotency_keys(expires_at);
+CREATE INDEX idx_idempotency_user ON idempotency_keys(user_id);
+
 -- Update updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$

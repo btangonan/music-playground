@@ -73,18 +73,6 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
               <div style={{ width: '40px', height: '40px' }}>
                 <IconComponent />
               </div>
-              {/* TEMPORARY: Instrument numbering for sound classification */}
-              <div
-                className="absolute top-0 right-0 bg-black text-white font-bold rounded-full flex items-center justify-center pointer-events-none"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  fontSize: '10px',
-                  lineHeight: '1'
-                }}
-              >
-                {index + 1}
-              </div>
             </div>
           );
         })}

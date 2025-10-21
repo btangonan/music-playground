@@ -136,6 +136,11 @@ export class AudioEngine {
       ? 0.01
       : (typeof durationSeconds === 'number' && isFinite(durationSeconds) ? Math.max(0.01, durationSeconds) : 0.15)
 
+    // DEBUG: Log note scheduling for pitch accuracy verification
+    if (globalThis.LL_DEBUG_PITCH) {
+      console.log(`[PITCH DEBUG] ${soundId}: ${note}, dur=${dur.toFixed(3)}s, vel=${velocity.toFixed(2)}`)
+    }
+
     try {
       if (instrument instanceof Tone.NoiseSynth) {
         instrument.triggerAttackRelease(dur, time, velocity)

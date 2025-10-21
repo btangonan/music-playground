@@ -55,7 +55,8 @@ function mapGmDrumToSoundId(midiNote: number): string {
  * - Lead Sawtooth (81) → impact (harsh sawtooth)
  * - Square Lead (80, 82) → arp (video game synth)
  * - Synth Pads (88-95) → lead (soft round) or sweep (warm)
- * - FX (96-103, 120-127) → riser, noise, glitch
+ * - Synth FX (96-103) → sweep (atmospheric pads, often melodic)
+ * - Sound FX (120-127) → riser (white noise FX)
  */
 function mapGmProgramToSoundId(program: number, pitch: number): string {
   // PIANO (0-7) → Our only real piano sound
@@ -111,9 +112,9 @@ function mapGmProgramToSoundId(program: number, pitch: number): string {
     return 'lead' // Warm/soft pads → soft round synth
   }
 
-  // SYNTH EFFECTS (96-103)
+  // SYNTH EFFECTS (96-103) → Atmospheric pads (often melodic)
   if (program >= 96 && program <= 103) {
-    return 'riser' // FX sounds → white noise riser
+    return 'sweep' // Warm atmospheric character (was 'riser' - noise)
   }
 
   // ETHNIC (104-111) → Plucked/melodic
@@ -154,6 +155,12 @@ function mapMidiToSoundId(midiNote: number, channel?: number, program?: number):
   // Phase 2: Use GM program semantics if available (NEW!)
   if (program !== undefined && program >= 0 && program <= 127) {
     return mapGmProgramToSoundId(program, midiNote)
+  }
+
+  // Handle invalid program numbers (> 127 or < 0)
+  if (program !== undefined && (program < 0 || program > 127)) {
+    console.warn(`[MIDI] Invalid GM program ${program} (valid range: 0-127). Mapping to 'lead' synth.`)
+    return 'lead' // Use neutral melodic sound instead of pitch-based bass mapping
   }
 
   // Phase 3: Pitch-only mapping as fallback for melodic (when no program info)
@@ -200,11 +207,6 @@ export function midiClipToPlacements(clip: ParsedMidiClip): Placement[] {
     const end = Math.min(64, bar + rawLen16)
     const duration16 = Math.max(1, end - bar)
 
-    // DEBUG: Log sustained notes (duration > 1 sixteenth)
-    if (duration16 > 1) {
-      console.log(`[MIDI] Sustained note: bar=${bar}, dur=${note.durationSec.toFixed(3)}s -> ${duration16} sixteenths, midi=${note.midi}, sound=${soundId}`);
-    }
-
     const cellKey = `${bar}_${soundId}_${pitch}`
     const existing = cellMap.get(cellKey)
 
@@ -221,10 +223,20 @@ export function midiClipToPlacements(clip: ParsedMidiClip): Placement[] {
   const placements: Placement[] = []
 
   for (const [, note] of cellMap) {
+    let finalPitch = note.midi
+
+    // Auto-transpose tracks with invalid programs if they're too low (< C3 / MIDI 48)
+    if (note.program !== undefined && (note.program < 0 || note.program > 127)) {
+      if (note.midi < 48) {
+        finalPitch = note.midi + 12 // Transpose up one octave
+        console.log(`[MIDI] Invalid program ${note.program}: transposing MIDI ${note.midi} → ${finalPitch} (up 1 octave)`)
+      }
+    }
+
     placements.push({
       soundId: mapMidiToSoundId(note.midi, note.channel, note.program),
       bar: note.bar,
-      pitch: note.midi,
+      pitch: finalPitch, // Use transposed pitch
       velocity: Math.round(note.velocity * 100),
       duration16: note.duration16 // Duration in sixteenths, preserved from MIDI
     })

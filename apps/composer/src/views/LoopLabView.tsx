@@ -455,17 +455,17 @@ export default function LoopLabView() {
 
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
           {/* Icon Gallery at top */}
-          <div className="flex items-center justify-center" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px' }}>
+          <div className="flex items-center justify-start" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px', paddingLeft: '32px' }}>
             <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
           </div>
 
           {/* Chord and Preset buttons row */}
-          <div className="flex items-center justify-center gap-2 px-4 py-1">
+          <div className="flex items-center justify-start gap-2 py-1" style={{ paddingLeft: '24px' }}>
             <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
           </div>
 
           {/* Main sequencer area */}
-          <div className="px-4 pb-4 pt-2 flex flex-col items-center">
+          <div className="px-4 pb-4 pt-2 flex flex-col items-start" style={{ paddingLeft: '32px' }}>
             <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
           </div>
         </div>
