@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
 import ChordLabels from './ChordLabels';
+import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH } from './sequencerLayout';
 
 interface IconPlacement {
   soundId: string;
@@ -32,18 +33,15 @@ interface IconSequencerWithDensityProps {
   onPresetSelect?: (preset: string) => void;
 }
 
-const COLUMN_WIDTH = 48; // quarter
-const ROW_HEIGHT = 10;
-const TIME_STEPS = 16;
+// Shared constants from sequencerLayout
+const { COLUMN_WIDTH, ROW_HEIGHT, TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
+
 const BARS = 4;
-const STEPS_PER_BAR = 4;
-const TOTAL_SEMITONES = 37; // 3 octaves + 1 to ensure C notes at both top and bottom
 const BASE_MIDI = 48;
 
 const EIGHTH_WIDTH = COLUMN_WIDTH / 2;  // 24
 const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4; // 12
 const EPS = 0.0001;
-const WRAPPER_PADDING = 15; // Invisible buffer zone around drop area to catch edge drops
 
 // Canonical 1/16 backbone
 const SNAP_DIVISOR = { '1/4': 4, '1/8': 2, '1/16': 1 } as const;
@@ -713,7 +711,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           width: '32px',
           height: '100%',
           pointerEvents: 'none',
-          zIndex: 100
+          zIndex: 100,
+          outline: DEBUG ? '2px solid red' : 'none'
         }}
       >
         {cNotes.map(({ midi, noteName, yPosition }) => (
@@ -722,7 +721,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             className="absolute text-xs font-medium text-gray-500"
             style={{
               top: `${yPosition}px`,
-              right: '4px',
+              left: '8px',
               lineHeight: `${ROW_HEIGHT}px`,
               height: `${ROW_HEIGHT}px`,
               userSelect: 'none'
@@ -738,11 +737,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   return (
     <div className="flex flex-row">
       {/* Sequencer grid with scroll-based pitch control */}
-      <div className="relative flex flex-col items-center gap-2">
+      <div className="relative flex flex-col items-start gap-2">
         <div
           ref={outerWrapperRef}
-          className="relative flex items-center justify-center"
-          style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+          className="relative flex items-center justify-start"
+          style={{ width: `${GRID_TOTAL_WIDTH + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
           onDragOver={!assignmentMode ? handleDragOver : undefined}
           onDragLeave={!assignmentMode ? handleDragLeave : undefined}
           onDrop={!assignmentMode ? handleDrop : undefined}
@@ -750,7 +749,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         >
           {/* C note pitch markers - absolutely positioned to left of grid */}
           {renderPitchMarkers()}
-          <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0 }}>
+          <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0, outline: DEBUG ? '2px solid blue' : 'none' }}>
             {renderGrid()}
             {renderHoverOverlay()}
             {!assignmentMode && renderPlacements()}
@@ -786,7 +785,13 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             )}
           </div>
         </div>
-        <ChordLabels barChords={barChords} />
+        <div style={{ width: `${GRID_TOTAL_WIDTH}px`, display: 'flex', justifyContent: 'center' }}>
+          <ChordLabels
+            barChords={barChords}
+            gridBorderWidth={GRID_BORDER_WIDTH}
+            debug={DEBUG}
+          />
+        </div>
       </div>
       {renderDragGhost()}
     </div>

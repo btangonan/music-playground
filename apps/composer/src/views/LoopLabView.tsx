@@ -465,7 +465,7 @@ export default function LoopLabView() {
           </div>
 
           {/* Main sequencer area */}
-          <div className="px-4 pb-4 pt-2 flex flex-col items-start" style={{ paddingLeft: '32px' }}>
+          <div className="px-4 pb-4 pt-2 flex flex-col items-start" style={{ paddingLeft: '56px' }}>
             <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
           </div>
         </div>

@@ -11,9 +11,19 @@ const app = express()
 // Security middleware
 app.use(helmet())
 
-// CORS configuration
+// CORS configuration - dynamic origin for development, strict for production
+const isDevelopment = config.node.env === 'development'
 app.use(cors({
-  origin: config.server.cors.origin,
+  origin: isDevelopment
+    ? (origin, callback) => {
+        // Allow any localhost origin in development (handles Vite port auto-increment)
+        if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+          callback(null, true)
+        } else {
+          callback(new Error('Not allowed by CORS'))
+        }
+      }
+    : config.server.cors.origin,
   credentials: true,
 }))
 
