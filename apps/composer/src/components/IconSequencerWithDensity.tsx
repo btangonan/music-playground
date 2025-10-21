@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
+import ChordLabels from './ChordLabels';
 
 interface IconPlacement {
   soundId: string;
@@ -741,63 +742,73 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div className="flex flex-row">
-      {/* C note pitch markers - aligned with sequencer grid */}
-      <div
-        className="relative"
-        style={{
-          width: '32px',
-          height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px`,
-          paddingTop: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`,
-          paddingBottom: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`
-        }}
-      >
-        {renderPitchMarkers()}
-      </div>
-
       {/* Sequencer grid with scroll-based pitch control */}
       <div
-        ref={outerWrapperRef}
         className="relative flex items-center justify-center"
-        style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
-        onDragOver={!assignmentMode ? handleDragOver : undefined}
-        onDragLeave={!assignmentMode ? handleDragLeave : undefined}
-        onDrop={!assignmentMode ? handleDrop : undefined}
-        onDragEnd={!assignmentMode ? handleDragEnd : undefined}
+        style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2 + 40}px` }}
       >
-        <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0 }}>
-          {renderGrid()}
-          {renderHoverOverlay()}
-          {!assignmentMode && renderPlacements()}
-          {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#000000', pointerEvents: 'none', zIndex: 150 }} />)}
+        {/* C note pitch markers - aligned with sequencer grid */}
+        <div
+          className="relative"
+          style={{
+            width: '40px',
+            height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px`,
+            paddingTop: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`,
+            paddingBottom: `${WRAPPER_PADDING + ROW_HEIGHT / 2 + 5}px`,
+            flexShrink: 0
+          }}
+        >
+          {renderPitchMarkers()}
+        </div>
 
-          {/* Clickable bar overlays for chord assignment mode */}
-          {assignmentMode && (
-            <>
-              {[0, 1, 2, 3].map(barIndex => (
-                <div
-                  key={`bar-overlay-${barIndex}`}
-                  onClick={(e) => handleBarClick(e, barIndex)}
-                  style={{
-                    position: 'absolute',
-                    left: `${barIndex * STEPS_PER_BAR * COLUMN_WIDTH}px`,
-                    top: 0,
-                    width: `${STEPS_PER_BAR * COLUMN_WIDTH}px`,
-                    height: '100%',
-                    cursor: 'pointer',
-                    zIndex: 250,
-                    // Subtle visual feedback on hover
-                    backgroundColor: 'transparent'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                />
-              ))}
-            </>
-          )}
+        {/* Sequencer and chord labels container */}
+        <div className="relative flex flex-col items-center gap-2">
+          <div
+            ref={outerWrapperRef}
+            className="relative flex items-center justify-center"
+            style={{ width: `${COLUMN_WIDTH * TIME_STEPS + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+            onDragOver={!assignmentMode ? handleDragOver : undefined}
+            onDragLeave={!assignmentMode ? handleDragLeave : undefined}
+            onDrop={!assignmentMode ? handleDrop : undefined}
+            onDragEnd={!assignmentMode ? handleDragEnd : undefined}
+          >
+          <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0 }}>
+            {renderGrid()}
+            {renderHoverOverlay()}
+            {!assignmentMode && renderPlacements()}
+            {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#000000', pointerEvents: 'none', zIndex: 150 }} />)}
+
+            {/* Clickable bar overlays for chord assignment mode */}
+            {assignmentMode && (
+              <>
+                {[0, 1, 2, 3].map(barIndex => (
+                  <div
+                    key={`bar-overlay-${barIndex}`}
+                    onClick={(e) => handleBarClick(e, barIndex)}
+                    style={{
+                      position: 'absolute',
+                      left: `${barIndex * STEPS_PER_BAR * COLUMN_WIDTH}px`,
+                      top: 0,
+                      width: `${STEPS_PER_BAR * COLUMN_WIDTH}px`,
+                      height: '100%',
+                      cursor: 'pointer',
+                      zIndex: 250,
+                      // Subtle visual feedback on hover
+                      backgroundColor: 'transparent'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                  />
+                ))}
+              </>
+            )}
+          </div>
+          </div>
+          <ChordLabels barChords={barChords} />
         </div>
       </div>
       {renderDragGhost()}
