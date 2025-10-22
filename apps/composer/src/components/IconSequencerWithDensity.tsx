@@ -1,11 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
 import ChordLabels from './ChordLabels';
 import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH } from './sequencerLayout';
+import { useMultiSelection } from '../hooks/useMultiSelection';
 
 interface IconPlacement {
+  id: string; // Stable UUID for selection tracking
   soundId: string;
   bar: number; // 0-63 (sixteenth note positions across 4 bars)
   pitch: number; // MIDI note number (48-83 for 3 octaves: C3-B5)
@@ -31,6 +33,17 @@ interface IconSequencerWithDensityProps {
   onOctaveOffsetChange?: (offset: number) => void;
   onChordSelect?: (chord: Chord | null) => void;
   onPresetSelect?: (preset: string) => void;
+}
+
+/**
+ * Ensures all placements have stable UUID identifiers.
+ * Migrates legacy placements without IDs by generating new UUIDs.
+ */
+function ensurePlacementIds(placements: IconPlacement[]): IconPlacement[] {
+  return placements.map(p => {
+    if (p.id) return p; // Already has ID
+    return { ...p, id: crypto.randomUUID() }; // Generate new ID
+  });
 }
 
 // Shared constants from sequencerLayout
@@ -80,10 +93,11 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   // Sync external placements to internal state
   // BUT skip if it's the same reference we just sent (prevent circular updates)
+  // Also ensure all placements have UUIDs (migrate legacy data)
   useEffect(() => {
     if (externalPlacements && externalPlacements !== lastPropagatedRef.current) {
       isSyncingFromExternal.current = true;
-      setPlacements(externalPlacements);
+      setPlacements(ensurePlacementIds(externalPlacements));
     }
   }, [externalPlacements]);
 
@@ -99,15 +113,27 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     }
   }, [placements]); // Removed onPlacementsChange from deps - should be stable function
 
+  // Multi-selection state - disabled during chord assignment mode
+  const selection = useMultiSelection({
+    items: placements,
+    onChange: setPlacements,
+    enabled: !assignmentMode
+  });
+
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number; xWithinCol: number; snappedBar: number } | null>(null);
   const [draggedPlacementIndex, setDraggedPlacementIndex] = useState<number | null>(null);
   const [dragGhost, setDragGhost] = useState<{ x: number; y: number; soundId: string } | null>(null);
+  const [dragGhosts, setDragGhosts] = useState<Array<{ offsetX: number; offsetY: number; soundId: string }>>([]);
   const [isDragging, setIsDragging] = useState(false);
   const isCmdPressedRef = useRef(false); // Track CMD key state globally (ref to avoid closure bugs)
   const [resizingPlacement, setResizingPlacement] = useState<{ index: number; startX: number; startDuration: number } | null>(null);
   const [hoveredResizeIcon, setHoveredResizeIcon] = useState<number | null>(null);
   const sequencerRef = useRef<HTMLDivElement>(null);
   const outerWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Marquee selection state
+  const [marquee, setMarquee] = useState<{ startX: number; startY: number; currentX: number; currentY: number } | null>(null);
+  const marqueeJustEndedRef = useRef(false);
 
   // Track CMD key state during drag operations using global keyboard events
   useEffect(() => {
@@ -137,8 +163,115 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const makeCenteredDragImage = (e: React.DragEvent) => { const d = document.createElement('div'); d.style.width = `${ICON_BOX}px`; d.style.height = `${ICON_BOX}px`; d.style.position = 'absolute'; d.style.top = '-9999px'; d.style.opacity = '0'; document.body.appendChild(d); e.dataTransfer.setDragImage(d, ICON_BOX / 2, ICON_BOX / 2); setTimeout(() => document.body.contains(d) && document.body.removeChild(d), 0); };
 
-  const handlePlacementDragStart = (e: React.DragEvent, index: number) => { e.stopPropagation(); setDraggedPlacementIndex(index); setIsDragging(true); const p = placements[index]; setDragGhost({ x: e.clientX, y: e.clientY, soundId: p.soundId }); e.dataTransfer.effectAllowed = 'copyMove'; e.dataTransfer.setData('placementIndex', String(index)); e.dataTransfer.setData('soundId', p.soundId); makeCenteredDragImage(e); };
+  const handlePlacementDragStart = (e: React.DragEvent, index: number) => {
+    e.stopPropagation();
+    setDraggedPlacementIndex(index);
+    setIsDragging(true);
+    const p = placements[index];
+    setDragGhost({ x: e.clientX, y: e.clientY, soundId: p.soundId });
+
+    // If dragging a selected icon with multiple selections, create ghosts for all selected
+    const isDraggedInSelection = selection.isSelected(p.id);
+    if (isDraggedInSelection && selection.selectedIds.size > 1) {
+      const ghosts = selection.selectedItems.map(item => ({
+        offsetX: (item.bar - p.bar) * SIXTEENTH_WIDTH,
+        // Y-offset: higher pitches are visually ABOVE (negative Y), so invert the sign
+        offsetY: (p.pitch - item.pitch) * ROW_HEIGHT,
+        soundId: item.soundId
+      }));
+      setDragGhosts(ghosts);
+    } else {
+      setDragGhosts([]);
+    }
+
+    e.dataTransfer.effectAllowed = 'copyMove';
+    e.dataTransfer.setData('placementIndex', String(index));
+    e.dataTransfer.setData('soundId', p.soundId);
+    makeCenteredDragImage(e);
+  };
   const handleIconDoubleClick = (e: React.MouseEvent, index: number) => { e.stopPropagation(); const updated = placements.filter((_, i) => i !== index); setPlacements(updated); };
+
+  // Marquee selection handlers
+  const handleMarqueeStart = (e: React.MouseEvent) => {
+    // Only start marquee if clicking on grid background (not on icons or during drag)
+    if (assignmentMode || isDragging || dragGhost) return;
+
+    const rect = sequencerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setMarquee({ startX: x, startY: y, currentX: x, currentY: y });
+  };
+
+  const handleMarqueeMove = useCallback((e: MouseEvent) => {
+    const rect = sequencerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setMarquee(prev => prev ? { ...prev, currentX: x, currentY: y } : null);
+  }, []);
+
+  const handleMarqueeEnd = useCallback(() => {
+    if (!marquee) return;
+
+    // Calculate marquee rectangle bounds
+    const minX = Math.min(marquee.startX, marquee.currentX);
+    const maxX = Math.max(marquee.startX, marquee.currentX);
+    const minY = Math.min(marquee.startY, marquee.currentY);
+    const maxY = Math.max(marquee.startY, marquee.currentY);
+
+    // Find icons that intersect with marquee
+    // NOTE: Icon positions in DOM include gridPaddingTop, so we must use the same coordinate space
+    const selectedInMarquee: string[] = [];
+    placements.forEach((p) => {
+      const row = topMidi - p.pitch;
+      const cellCenterX = p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
+      const iconLeft = cellCenterX - ICON_BOX / 2;
+      const iconRight = iconLeft + ICON_BOX;
+      // Icon visual position in grid container (same coordinate space as marquee)
+      const iconTop = row * ROW_HEIGHT + gridPaddingTop - (40 - ROW_HEIGHT) / 2;
+      const iconBottom = iconTop + 40; // BLOCK_HEIGHT = 40
+
+      // Check if icon intersects with marquee box
+      const intersects = iconRight >= minX && iconLeft <= maxX && iconBottom >= minY && iconTop <= maxY;
+      if (intersects) {
+        selectedInMarquee.push(p.id);
+      }
+    });
+
+    // Mark that marquee just ended to prevent onClick from clearing selection
+    marqueeJustEndedRef.current = true;
+    setTimeout(() => {
+      marqueeJustEndedRef.current = false;
+    }, 100);
+
+    // Clear marquee first
+    setMarquee(null);
+
+    // Then update selection in a single atomic operation (avoids state batching issues)
+    if (selectedInMarquee.length > 0) {
+      selection.setSelection(selectedInMarquee);
+    } else {
+      selection.clearSelection();
+    }
+  }, [marquee, placements, topMidi, gridPaddingTop, selection]);
+
+  // Window-level mouse handlers for marquee selection (allows dragging beyond grid bounds)
+  useEffect(() => {
+    if (!marquee) return;
+
+    window.addEventListener('mousemove', handleMarqueeMove);
+    window.addEventListener('mouseup', handleMarqueeEnd);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMarqueeMove);
+      window.removeEventListener('mouseup', handleMarqueeEnd);
+    };
+  }, [marquee, handleMarqueeMove, handleMarqueeEnd]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -183,14 +316,14 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const row = Math.floor(y / ROW_HEIGHT);
     const divisor = SNAP_DIVISOR[resolution];
 
-    // Snap to grid: use the cell the mouse is currently IN (floor-based snapping)
-    // Icon lands at the LEFT EDGE of the cell containing the mouse
-    const cellInSixteenths = Math.floor(x / SIXTEENTH_WIDTH);
-    const snappedBar = Math.floor(cellInSixteenths / divisor) * divisor;
+    // Snap to grid: round cursor position to NEAREST snap point based on resolution
+    // This centers the preview icon on/near the cursor position
+    const cursorBar = x / SIXTEENTH_WIDTH; // Exact bar position of cursor
+    const snappedBar = Math.round(cursorBar / divisor) * divisor; // Round to nearest snap
     const finalSnappedBar = Math.max(0, Math.min(63, snappedBar));
 
     if (DEBUG && resolution === '1/16') {
-      console.log('🔵 DRAG_OVER:', { x, cellInSixteenths, divisor, snappedBar, finalSnappedBar, resolution });
+      console.log('🔵 DRAG_OVER:', { x, divisor, snappedBar, finalSnappedBar, resolution });
     }
 
     if (col >= 0 && col < TIME_STEPS && row >= 0 && row < TOTAL_SEMITONES) {
@@ -255,16 +388,58 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
     if (placementIndexStr) {
       const placementIndex = parseInt(placementIndexStr);
+      const draggedPlacement = placements[placementIndex];
+      const isDraggedInSelection = selection.isSelected(draggedPlacement.id);
+
       if (isDuplicating) {
-        const original = placements[placementIndex];
-        const np: IconPlacement = { ...original, bar: finalSnappedBar, pitch };
-        setPlacements([...placements, np]);
-        onPreviewNote?.(np.soundId, pitch);
+        // Duplication mode: duplicate the dragged icon (or all selected icons if dragged is in selection)
+        if (isDraggedInSelection && selection.selectedIds.size > 1) {
+          // Duplicate all selected icons with same offset
+          const deltaBar = finalSnappedBar - draggedPlacement.bar;
+          const deltaPitch = pitch - draggedPlacement.pitch;
+          const newPlacements = selection.selectedItems.map(p => ({
+            ...p,
+            id: crypto.randomUUID(),
+            bar: Math.max(0, Math.min(63, p.bar + deltaBar)),
+            pitch: Math.max(BASE_BOTTOM_MIDI, Math.min(topMidi, p.pitch + deltaPitch))
+          }));
+          setPlacements([...placements, ...newPlacements]);
+          // Select the newly created duplicates
+          selection.setSelection(newPlacements.map(p => p.id));
+          onPreviewNote?.(draggedPlacement.soundId, pitch);
+        } else {
+          // Single duplication
+          const np: IconPlacement = { ...draggedPlacement, id: crypto.randomUUID(), bar: finalSnappedBar, pitch };
+          setPlacements([...placements, np]);
+          // Select the newly created duplicate
+          selection.setSelection([np.id]);
+          onPreviewNote?.(np.soundId, pitch);
+        }
       } else {
-        const up = [...placements];
-        up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch };
-        setPlacements(up);
-        onPreviewNote?.(up[placementIndex].soundId, pitch);
+        // Move mode: move the dragged icon (or all selected icons if dragged is in selection)
+        if (isDraggedInSelection && selection.selectedIds.size > 1) {
+          // Move all selected icons with same offset
+          const deltaBar = finalSnappedBar - draggedPlacement.bar;
+          const deltaPitch = pitch - draggedPlacement.pitch;
+          const up = placements.map(p => {
+            if (selection.isSelected(p.id)) {
+              return {
+                ...p,
+                bar: Math.max(0, Math.min(63, p.bar + deltaBar)),
+                pitch: Math.max(BASE_BOTTOM_MIDI, Math.min(topMidi, p.pitch + deltaPitch))
+              };
+            }
+            return p;
+          });
+          setPlacements(up);
+          onPreviewNote?.(draggedPlacement.soundId, pitch);
+        } else {
+          // Single move
+          const up = [...placements];
+          up[placementIndex] = { ...up[placementIndex], bar: finalSnappedBar, pitch };
+          setPlacements(up);
+          onPreviewNote?.(up[placementIndex].soundId, pitch);
+        }
       }
       setDraggedPlacementIndex(null);
     } else {
@@ -344,7 +519,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         console.log('➕ ADDING new placement at bar:', finalSnappedBar, 'pitch:', pitch);
         console.log('📋 Current placements:', placements.length, '→ New count:', placements.length + 1);
       }
-      const np: IconPlacement = { soundId, bar: finalSnappedBar, pitch, velocity: 80 };
+      const np: IconPlacement = { id: crypto.randomUUID(), soundId, bar: finalSnappedBar, pitch, velocity: 80 };
       setPlacements([...placements, np]);
       onPreviewNote?.(soundId, pitch);
     }
@@ -437,16 +612,16 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         const subdivisionLines: number[] = [];
         if (resolution === '1/4') { subdivisionLines.push(0); } else if (resolution === '1/8') { subdivisionLines.push(0, COLUMN_WIDTH / 2); } else if (resolution === '1/16') { subdivisionLines.push(0, SIXTEENTH_WIDTH, COLUMN_WIDTH / 2, SIXTEENTH_WIDTH * 3); }
         cells.push(
-          <div key={col} style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0 }}>
+          <div key={col} className="grid-background" style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0 }}>
             <div style={{ position: 'absolute', inset: 0, backgroundColor: barChordColor, pointerEvents: 'none' }} />
             {isDragging && (<div style={{ position: 'absolute', inset: 0, backgroundColor: densityColor, pointerEvents: 'none' }} />)}
             {subdivisionLines.map((xPos, idx) => (<div key={`subdiv-${idx}`} style={{ position: 'absolute', left: `${xPos}px`, top: 0, width: '1px', height: '100%', backgroundColor: 'rgba(0,0,0,0.1)', pointerEvents: 'none' }} />))}
           </div>
         );
       }
-      rows.push(<div key={row} className="flex" style={{ height: `${ROW_HEIGHT}px`, flexShrink: 0 }}>{cells}</div>);
+      rows.push(<div key={row} className="flex grid-background" style={{ height: `${ROW_HEIGHT}px`, flexShrink: 0 }}>{cells}</div>);
     }
-    return (<div style={{ display: 'flex', flexDirection: 'column' }}>{rows}</div>);
+    return (<div className="grid-background" style={{ display: 'flex', flexDirection: 'column' }}>{rows}</div>);
   };
 
   const renderPlacements = () => {
@@ -498,6 +673,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       return (
         <div
           key={index}
+          data-icon-placement="true"
           style={{
             position: 'absolute',
             left: `${startX}px`,
@@ -512,6 +688,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             draggable
             onDragStart={(e) => handlePlacementDragStart(e, index)}
             onDoubleClick={(e) => handleIconDoubleClick(e, index)}
+            onClick={(e) => {
+              e.stopPropagation();
+              selection.selectItem(p.id);
+            }}
             style={{
               position: 'absolute',
               left: '0px',
@@ -522,7 +702,12 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               zIndex: 201,
               // Allow drops from gallery to pass through to grid when dragging from gallery
               // When dragging a placed icon, keep pointer events on THAT icon, disable others
-              pointerEvents: (draggedPlacementIndex !== index && (draggingSound || isDragging || dragGhost)) ? 'none' : 'auto'
+              pointerEvents: (draggedPlacementIndex !== index && (draggingSound || isDragging || dragGhost)) ? 'none' : 'auto',
+              // Selection highlight
+              border: selection.isSelected(p.id) ? '2px solid #3B82F6' : '2px solid transparent',
+              borderRadius: '4px',
+              boxSizing: 'border-box',
+              transition: 'border-color 0.15s ease'
             }}
           >
             {/* Icon centered in draggable wrapper */}
@@ -625,6 +810,42 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   const renderDragGhost = () => {
     if (!dragGhost) return null;
+
+    // Render multiple ghosts if dragging selected group
+    if (dragGhosts.length > 0) {
+      return (
+        <>
+          {dragGhosts.map((ghost, idx) => {
+            const sound = SOUND_ICONS.find(s => s.id === ghost.soundId);
+            if (!sound) return null;
+            const IconComponent = sound.icon;
+            const ghostX = dragGhost.x + ghost.offsetX;
+            const ghostY = dragGhost.y + ghost.offsetY;
+            return (
+              <div
+                key={idx}
+                style={{
+                  position: 'fixed',
+                  left: `${ghostX - ICON_BOX / 2}px`,
+                  top: `${ghostY - ICON_BOX / 2}px`,
+                  width: `${ICON_BOX}px`,
+                  height: `${ICON_BOX}px`,
+                  opacity: 0.85,
+                  pointerEvents: 'none',
+                  zIndex: 1000
+                }}
+              >
+                <div style={{ width: '100%', height: '100%', transform: `scale(${BASE_SCALE})`, transformOrigin: 'center' }}>
+                  <IconComponent />
+                </div>
+              </div>
+            );
+          })}
+        </>
+      );
+    }
+
+    // Single ghost (original behavior)
     const sound = SOUND_ICONS.find(s => s.id === dragGhost.soundId);
     if (!sound) return null;
     const IconComponent = sound.icon;
@@ -638,6 +859,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     setDraggedPlacementIndex(null);
     setHoveredCell(null);
     setDragGhost(null);
+    setDragGhosts([]);
     setIsDragging(false);
     // Reset CMD state when drag ends (after a small delay to ensure drop completes)
     setTimeout(() => { isCmdPressedRef.current = false; }, 50);
@@ -746,14 +968,52 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           onDragLeave={!assignmentMode ? handleDragLeave : undefined}
           onDrop={!assignmentMode ? handleDrop : undefined}
           onDragEnd={!assignmentMode ? handleDragEnd : undefined}
+          onClick={(e) => {
+            // Clear selection when clicking anywhere except on icons
+            if (!assignmentMode) {
+              // Don't clear if marquee just ended (prevents mouseup+click race condition)
+              if (marqueeJustEndedRef.current) return;
+
+              const target = e.target as HTMLElement;
+              // Check if clicked on an icon or inside an icon's wrapper
+              if (!target.closest('[data-icon-placement]')) {
+                selection.clearSelection();
+              }
+            }
+          }}
         >
           {/* C note pitch markers - absolutely positioned to left of grid */}
           {renderPitchMarkers()}
-          <div ref={sequencerRef} className="relative border-2 border-black rounded-xl overflow-hidden" style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0, outline: DEBUG ? '2px solid blue' : 'none' }}>
+          <div
+            ref={sequencerRef}
+            className={`relative border-2 border-black rounded-xl ${marquee ? 'overflow-visible' : 'overflow-hidden'}`}
+            style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0, outline: DEBUG ? '2px solid blue' : 'none' }}
+            onMouseDown={(e) => {
+              // Start marquee if clicking on grid background
+              if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.grid-background')) {
+                handleMarqueeStart(e);
+              }
+            }}
+          >
             {renderGrid()}
             {renderHoverOverlay()}
             {!assignmentMode && renderPlacements()}
             {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#000000', pointerEvents: 'none', zIndex: 150 }} />)}
+
+            {/* Marquee selection rectangle */}
+            {marquee && (
+              <div style={{
+                position: 'absolute',
+                left: `${Math.min(marquee.startX, marquee.currentX)}px`,
+                top: `${Math.min(marquee.startY, marquee.currentY)}px`,
+                width: `${Math.abs(marquee.currentX - marquee.startX)}px`,
+                height: `${Math.abs(marquee.currentY - marquee.startY)}px`,
+                border: '2px solid #3B82F6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                pointerEvents: 'none',
+                zIndex: 250
+              }} />
+            )}
 
             {/* Clickable bar overlays for chord assignment mode */}
             {assignmentMode && (
