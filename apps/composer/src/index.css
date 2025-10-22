@@ -753,6 +753,22 @@ body {
   animation: slideIn 0.3s ease-out;
 }
 
+/* Border blink animation - electric blue pulse */
+@keyframes border-cycle {
+  0%, 100% {
+    border-color: #00D4FF;  /* electric blue */
+    box-shadow: 0 0 8px rgba(0, 212, 255, 0.6);
+  }
+  50% {
+    border-color: rgba(0, 212, 255, 0.3);  /* dim blue */
+    box-shadow: 0 0 0px rgba(0, 212, 255, 0);
+  }
+}
+
+.border-cycle {
+  animation: border-cycle 1s infinite ease-in-out;
+}
+
 [draggable="true"] {
   cursor: grab;
 }

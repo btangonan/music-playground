@@ -702,12 +702,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               zIndex: 201,
               // Allow drops from gallery to pass through to grid when dragging from gallery
               // When dragging a placed icon, keep pointer events on THAT icon, disable others
-              pointerEvents: (draggedPlacementIndex !== index && (draggingSound || isDragging || dragGhost)) ? 'none' : 'auto',
-              // Selection highlight
-              border: selection.isSelected(p.id) ? '2px solid #3B82F6' : '2px solid transparent',
-              borderRadius: '4px',
-              boxSizing: 'border-box',
-              transition: 'border-color 0.15s ease'
+              pointerEvents: (draggedPlacementIndex !== index && (draggingSound || isDragging || dragGhost)) ? 'none' : 'auto'
             }}
           >
             {/* Icon centered in draggable wrapper - matching gallery approach */}
@@ -725,6 +720,23 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
                 justifyContent: 'center'
               }}
             >
+              {selection.isSelected(p.id) && (
+                <div
+                  className="border-cycle"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '8px',
+                    border: '1px solid',
+                    backgroundColor: 'white',
+                    pointerEvents: 'none',
+                    zIndex: -1
+                  }}
+                />
+              )}
               <div style={{ width: '40px', height: '40px', display: 'block', lineHeight: 0 }}>
                 <IconComponent />
               </div>
