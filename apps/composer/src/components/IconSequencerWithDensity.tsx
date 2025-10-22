@@ -678,7 +678,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             position: 'absolute',
             left: `${startX}px`,
             top: `${blockTop}px`,
-            width: `${widthPx}px`,
+            width: `${ICON_BOX}px`, // Icon box fixed width, duration bar extends separately
             height: `${BLOCK_HEIGHT}px`,
             zIndex: 200
           }}
@@ -694,7 +694,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             }}
             style={{
               position: 'absolute',
-              left: '0px',
+              left: '0px', // Container already positioned to center icon (startX = cellCenterX - ICON_BOX/2)
               top: `${(BLOCK_HEIGHT - ICON_BOX) / 2}px`,
               width: `${ICON_BOX}px`,
               height: `${ICON_BOX}px`,
@@ -710,16 +710,13 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               transition: 'border-color 0.15s ease'
             }}
           >
-            {/* Icon centered in draggable wrapper */}
+            {/* Icon centered in draggable wrapper - matching gallery approach */}
             <motion.div
               animate={{ scale: isHit ? 1.1 : 1.0 }}
               transition={{ type: 'spring', stiffness: 600, damping: 20 }}
               style={{
-                position: 'absolute',
-                left: '0px',
-                top: '0px',
-                width: `${ICON_BOX}px`,
-                height: `${ICON_BOX}px`,
+                width: '100%',
+                height: '100%',
                 transformOrigin: 'center center',
                 pointerEvents: 'none',
                 backgroundColor: DEBUG ? 'rgba(0, 255, 0, 0.2)' : 'transparent',
@@ -728,7 +725,9 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
                 justifyContent: 'center'
               }}
             >
-              <IconComponent />
+              <div style={{ width: '40px', height: '40px', display: 'block', lineHeight: 0 }}>
+                <IconComponent />
+              </div>
             </motion.div>
           </div>
 
