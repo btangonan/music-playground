@@ -10,17 +10,17 @@ interface IconGalleryProps {
 
 export default function IconGallery({ selectedSound, onSelectSound, onDragStart, onDragEnd, onPreviewSound }: IconGalleryProps) {
   return (
-    <div 
+    <div
       className="flex items-center justify-center"
-      style={{ 
+      style={{
         height: '48px'
       }}
     >
       <div className="flex gap-[6px] items-center">
-        {SOUND_ICONS.map((sound) => {
+        {SOUND_ICONS.map((sound, index) => {
           const IconComponent = sound.icon;
           const isSelected = selectedSound === sound.id;
-          
+
           return (
             <div
               key={sound.id}
@@ -30,7 +30,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
                 onPreviewSound?.(sound.id);
               }}
               className={`
-                flex-shrink-0 cursor-pointer flex items-center justify-center
+                flex-shrink-0 cursor-pointer flex items-center justify-center relative
                 transition-all duration-150
                 ${isSelected ? 'scale-110' : 'hover:scale-110'}
               `}

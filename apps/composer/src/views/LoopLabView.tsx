@@ -5,7 +5,6 @@ import ChordPalette from '../components/ChordPalette';
 import IconGallery from '../components/IconGallery';
 import IconSequencerWithDensity from '../components/IconSequencerWithDensity';
 import StepNumbers from '../components/StepNumbers';
-import ChordLabels from '../components/ChordLabels';
 import MidiInfoModal from '../components/MidiInfoModal';
 import { type Chord } from '../components/chordData';
 import { AudioEngine } from '../audio/AudioEngine';
@@ -182,6 +181,30 @@ export default function LoopLabView() {
     setSelectedSound(soundId === selectedSound ? null : soundId);
   };
 
+  const handleClearAll = () => {
+    // Stop playback if playing
+    if (isPlaying) {
+      handlePlayPause();
+    }
+
+    // Clear all state
+    setPlacements([]);
+    setBarChords([null, null, null, null]);
+    setMidiMetadata(null);
+    setCurrentLoopId(null);
+    setLoopName('Untitled Loop');
+    setLastSaved(null);
+
+    // Clear URL param if present
+    const url = new URL(window.location.href);
+    if (url.searchParams.has('loopId')) {
+      url.searchParams.delete('loopId');
+      window.history.replaceState(null, '', url.toString());
+    }
+
+    showToast('All notes and chords cleared', 'success');
+  };
+
   const handleChordSelect = (chord: Chord | null) => {
     setAssignmentMode(chord);
   };
@@ -316,6 +339,12 @@ export default function LoopLabView() {
       setPitchRange({ min: Math.min(...pitches), max: Math.max(...pitches) });
     } else { setPitchRange(null); }
 
+    // Auto-sync BPM from MIDI file
+    setBpm(metadata.bpm);
+
+    // Clear chord progression on MIDI import (chords don't match MIDI content)
+    setBarChords([null, null, null, null]);
+
     // Auto-switch to 1/16 resolution for MIDI imports (most MIDI uses 1/16th note timing)
     setResolution('1/16');
 
@@ -422,27 +451,26 @@ export default function LoopLabView() {
           </p>
         </div>
 
-        <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
+        <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
 
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
           {/* Icon Gallery at top */}
-          <div className="flex items-center justify-center" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px' }}>
+          <div className="flex items-center justify-start" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px', paddingLeft: '32px' }}>
             <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
           </div>
 
           {/* Chord and Preset buttons row */}
-          <div className="flex items-center justify-center gap-2 px-4 py-2">
+          <div className="flex items-center justify-start gap-2 py-1" style={{ paddingLeft: '24px' }}>
             <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
           </div>
 
           {/* Main sequencer area */}
-          <div className="px-4 pb-4 pt-4 flex flex-col items-center">
+          <div className="px-4 pb-4 pt-2 flex flex-col items-start" style={{ paddingLeft: '56px' }}>
             <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
-            <div className="mt-2"><ChordLabels barChords={barChords} /></div>
           </div>
         </div>
 
-        <p className="text-[rgba(0,0,0,0.4)] mt-3 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
+        <p className="text-[rgba(0,0,0,0.4)] mt-2 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
           {assignmentMode ? `Click a bar to assign chord "${assignmentMode}"` : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
         </p>
 

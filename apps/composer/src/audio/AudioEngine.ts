@@ -20,6 +20,7 @@ export interface ParsedMidiNote {
 export interface ParsedMidiClip {
   name: string
   bpm: number
+  timeSignature?: string  // NEW: Time signature like "4/4", "3/4", "6/8"
   notes: ParsedMidiNote[]
 }
 
@@ -135,6 +136,11 @@ export class AudioEngine {
       ? 0.01
       : (typeof durationSeconds === 'number' && isFinite(durationSeconds) ? Math.max(0.01, durationSeconds) : 0.15)
 
+    // DEBUG: Log note scheduling for pitch accuracy verification
+    if (globalThis.LL_DEBUG_PITCH) {
+      console.log(`[PITCH DEBUG] ${soundId}: ${note}, dur=${dur.toFixed(3)}s, vel=${velocity.toFixed(2)}`)
+    }
+
     try {
       if (instrument instanceof Tone.NoiseSynth) {
         instrument.triggerAttackRelease(dur, time, velocity)
@@ -159,6 +165,16 @@ export class AudioEngine {
 
     // Get BPM from first tempo change, or default to 120
     const bpm = midi.header.tempos.length > 0 ? midi.header.tempos[0].bpm : 120
+
+    // Get time signature from first time signature event, or default to 4/4
+    let timeSignature = '4/4'
+    if (midi.header.timeSignatures && midi.header.timeSignatures.length > 0) {
+      const ts = midi.header.timeSignatures[0]
+      if (ts.timeSignature && Array.isArray(ts.timeSignature) && ts.timeSignature.length === 2) {
+        const [numerator, denominator] = ts.timeSignature
+        timeSignature = `${numerator}/${denominator}`
+      }
+    }
 
     // Flatten all tracks into single note array
     const notes: ParsedMidiNote[] = []
@@ -186,6 +202,8 @@ export class AudioEngine {
 
     // DEBUG: Log duration stats
     console.log('[MIDI PARSE] Total notes:', notes.length)
+    console.log('[MIDI PARSE] BPM:', bpm)
+    console.log('[MIDI PARSE] Time signature:', timeSignature)
     console.log('[MIDI PARSE] Duration range:', Math.min(...durations).toFixed(3), '-', Math.max(...durations).toFixed(3), 'seconds')
     const longNotes = durations.filter(d => d > 0.5).length
     console.log('[MIDI PARSE] Notes >0.5s (truly sustained):', longNotes)
@@ -193,6 +211,7 @@ export class AudioEngine {
     return {
       name,
       bpm,
+      timeSignature,
       notes
     }
   }

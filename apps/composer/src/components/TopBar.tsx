@@ -1,4 +1,4 @@
-import { Play, Save, Settings, Square, Upload } from 'lucide-react';
+import { Play, Save, Settings, Square, Upload, Trash2 } from 'lucide-react';
 import { useRef, useState } from 'react';
 import KeySelector from './KeySelector';
 import MidiUploader from './MidiUploader';
@@ -8,6 +8,7 @@ interface TopBarProps {
   bpm: number;
   onPlayPause: () => void;
   onSave: () => void;
+  onClearAll: () => void;
   onBpmChange: (bpm: number) => void;
   selectedKey: string;
   onKeyChange: (key: string) => void;
@@ -24,6 +25,7 @@ export default function TopBar({
   bpm,
   onPlayPause,
   onSave,
+  onClearAll,
   onBpmChange,
   selectedKey,
   onKeyChange,
@@ -37,13 +39,14 @@ export default function TopBar({
   const midiUploaderRef = useRef<{ triggerUpload: () => void }>(null);
 
   const handleImportClick = () => {
-    if (midiMetadata) {
-      // If MIDI already loaded, show modal
-      onShowMidiModal();
-    } else {
-      // Trigger file picker
-      const fileInput = document.querySelector('input[type="file"][accept*="midi"]') as HTMLInputElement;
-      fileInput?.click();
+    // Always trigger file picker to import new MIDI
+    const fileInput = document.querySelector('input[type="file"][accept*="midi"]') as HTMLInputElement;
+    fileInput?.click();
+  };
+
+  const handleClearClick = () => {
+    if (window.confirm('Clear all notes and chords? This cannot be undone.')) {
+      onClearAll();
     }
   };
   return (
@@ -53,9 +56,9 @@ export default function TopBar({
         height: '60px'
       }}
     >
-      <div className="flex items-center justify-between h-full">
+      <div className="flex items-center justify-between h-full w-full">
         {/* Left Side - Action Buttons */}
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-3">
           <button
             onClick={onPlayPause}
             className="
@@ -65,14 +68,14 @@ export default function TopBar({
               bounce-transition hover:scale-105 active:scale-98
               hover:opacity-90
             "
-            style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px' }}
+            style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap' }}
           >
             {isPlaying ? (
               <Square className="w-4 h-4 fill-black stroke-black" />
             ) : (
               <Play className="w-4 h-4 fill-black stroke-black" />
             )}
-            <span>Preview Loop</span>
+            <span>Play Loop</span>
           </button>
 
           <button
@@ -83,7 +86,7 @@ export default function TopBar({
               bounce-transition hover:scale-105 active:scale-98
               hover:bg-[rgba(0,0,0,0.05)]
             "
-            style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px' }}
+            style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap' }}
           >
             <Save className="w-4 h-4" />
             <span>Save to Pad</span>
@@ -99,19 +102,11 @@ export default function TopBar({
                 bounce-transition hover:scale-105 active:scale-98
                 hover:bg-[rgba(0,0,0,0.05)]
               "
-              style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px' }}
+              style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap' }}
             >
               <Upload className="w-4 h-4" />
               <span>Import MIDI</span>
             </button>
-
-            {/* Green badge when MIDI loaded */}
-            {midiMetadata && (
-              <div
-                className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"
-                title="MIDI file loaded - click to view details"
-              />
-            )}
 
             {/* Hidden MidiUploader */}
             <div style={{ display: 'none' }}>
@@ -125,7 +120,7 @@ export default function TopBar({
         </div>
 
         {/* Right Side - Key, BPM & Settings */}
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-3">
           {/* Key Selector */}
           <KeySelector
             selectedKey={selectedKey}
@@ -170,6 +165,20 @@ export default function TopBar({
               max="200"
             />
           </div>
+
+          {/* Clear All Button */}
+          <button
+            onClick={handleClearClick}
+            className="
+              bg-white border border-[rgba(0,0,0,0.1)] p-2.5 rounded-xl
+              flex items-center justify-center
+              bounce-transition hover:scale-105 active:scale-98
+              hover:bg-[rgba(0,0,0,0.05)]
+            "
+            title="Clear All"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
 
           <button
             className="

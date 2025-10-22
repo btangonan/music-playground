@@ -2,6 +2,7 @@
 import express from 'express'
 import { LoopService } from '../services/LoopService.js'
 import { authenticateJWT, optionalAuth, type AuthRequest } from '../middleware/auth.js'
+import { idempotencyMiddleware } from '../middleware/idempotency.js'
 
 const router = express.Router()
 const loopService = new LoopService()
@@ -46,7 +47,7 @@ router.get('/:id', optionalAuth, async (req: AuthRequest, res) => {
 })
 
 // POST /api/loops - Create new loop
-router.post('/', authenticateJWT, async (req: AuthRequest, res) => {
+router.post('/', authenticateJWT, idempotencyMiddleware, async (req: AuthRequest, res) => {
   try {
     const loop = await loopService.createLoop(req.user!.id, req.body)
 
@@ -91,7 +92,7 @@ router.delete('/:id', authenticateJWT, async (req: AuthRequest, res) => {
 })
 
 // POST /api/loops/:id/duplicate - Duplicate/remix loop
-router.post('/:id/duplicate', authenticateJWT, async (req: AuthRequest, res) => {
+router.post('/:id/duplicate', authenticateJWT, idempotencyMiddleware, async (req: AuthRequest, res) => {
   try {
     const loop = await loopService.duplicateLoop(req.params.id, req.user!.id)
 

@@ -1,0 +1,255 @@
+{
+  "assessment_date": "2025-10-20",
+  "repository": "music-playground",
+  "monorepo_type": "pnpm + turbo",
+  "maturity_dimensions": {
+    "loc_discipline": {
+      "score": 1,
+      "scale": "0-3",
+      "evidence": {
+        "total_files": 280,
+        "files_over_300_loc": 16,
+        "percentage_oversized": "5.7%",
+        "largest_file": "packages/engine/src/audio-engine.ts (762 LOC)",
+        "files_over_500_loc": 2,
+        "critical_violations": [
+          "audio-engine.ts (762 LOC) - severe SRP violation",
+          "IconSequencerWithDensity.tsx (726 LOC)",
+          "sidebar.tsx duplicates (726 + 637 LOC)"
+        ]
+      },
+      "rationale": "Many >300 LOC files. 2 files exceed 700 LOC. Core engine file violates SRP.",
+      "target": "≤5 files >300 LOC (1.8%)"
+    },
+    "validation_coverage": {
+      "score": 1,
+      "scale": "0-3",
+      "evidence": {
+        "total_routes": 10,
+        "routes_with_request_validation": 4,
+        "routes_with_response_validation": 0,
+        "coverage_percentage": 40,
+        "validation_library": "Zod 3.23",
+        "validated_routes": [
+          "POST /api/auth/signup",
+          "POST /api/auth/login",
+          "POST /api/loops",
+          "PUT /api/loops/:id"
+        ],
+        "unvalidated_routes": [
+          "GET /api/loops (weak query param parsing)",
+          "GET /api/loops/:id",
+          "DELETE /api/loops/:id",
+          "POST /api/loops/:id/duplicate",
+          "GET /api/auth/me"
+        ]
+      },
+      "rationale": "40% request validation (below 80% target). No response validation. Inconsistent patterns.",
+      "target": "≥80% routes with request+response validation"
+    },
+    "secrets_hygiene": {
+      "score": 2,
+      "scale": "0-3",
+      "evidence": {
+        "hardcoded_secrets": 0,
+        "env_based_config": true,
+        "config_validation": "Zod schema",
+        "env_example_present": true,
+        "weak_fallbacks": [
+          "JWT_SECRET fallback: 'change-me-in-production-min-32-chars-long'"
+        ],
+        "secret_manager": false
+      },
+      "rationale": "Good env-based config with validation. Weak dev fallback for JWT_SECRET. No secret manager.",
+      "target": "Production secret manager + no fallbacks"
+    },
+    "state_persistence": {
+      "score": 2,
+      "scale": "0-3",
+      "evidence": {
+        "durable_storage": "PostgreSQL + IndexedDB",
+        "cross_request_state": false,
+        "idempotency_keys": false,
+        "optimistic_locking": false,
+        "transaction_support": true,
+        "persistence_types": [
+          "PostgreSQL (ACID, foreign keys, triggers)",
+          "IndexedDB (client-side, versioned)",
+          "LocalStorage (fallback)"
+        ],
+        "gaps": [
+          "No idempotency keys for POST operations",
+          "No optimistic locking for PUT operations",
+          "Sync conflicts possible with ApiSyncAdapter"
+        ]
+      },
+      "rationale": "Durable persistence with proper schema. No idempotency or optimistic locking.",
+      "target": "Durable + idempotent + optimistic locking"
+    },
+    "errors_retry_idempotency": {
+      "score": 2,
+      "scale": "0-3",
+      "evidence": {
+        "structured_errors": "JSON format, HTTP status codes",
+        "retry_logic": "Frontend exponential backoff (3 retries, 1s/2s/4s)",
+        "error_classification": "isRetryable flag present",
+        "idempotency": false,
+        "problem_json": false,
+        "retry_conditions": [
+          "Network errors",
+          "HTTP 500, 502, 503"
+        ],
+        "missing": [
+          "No idempotency keys",
+          "No optimistic locking",
+          "No backend retry for DB",
+          "No Problem+JSON (RFC 7807)",
+          "No jitter in backoff"
+        ]
+      },
+      "rationale": "Structured errors + retry logic. No idempotency keys or optimistic locking.",
+      "target": "Problem+JSON + retries + idempotency + DLQ"
+    },
+    "testing_ci": {
+      "score": 1,
+      "scale": "0-3",
+      "evidence": {
+        "test_framework": "Vitest 2.x",
+        "test_files": 10,
+        "test_assertions": "346+",
+        "estimated_coverage": "30-40%",
+        "ci_present": true,
+        "ci_tests": "Engine only (API and composer skipped)",
+        "coverage_reporting": false,
+        "code_quality_gates": false,
+        "tested_areas": [
+          "Engine API surface (60% coverage)",
+          "Storage adapters",
+          "Schema validation",
+          "E2E loop API"
+        ],
+        "untested_areas": [
+          "API routes (0% coverage)",
+          "API services (0% coverage)",
+          "React components (5% coverage)",
+          "Auth middleware",
+          "Database queries"
+        ],
+        "ci_steps": [
+          "Build engine",
+          "Test engine",
+          "Build composer",
+          "Check bundle size (150 KB limit)"
+        ]
+      },
+      "rationale": "Basic CI with engine tests only. No API/composer tests in CI. No coverage gates.",
+      "target": "Units + integration + coverage gate (70%+) + CI runs all tests"
+    }
+  },
+  "overall_maturity": {
+    "average_score": 1.5,
+    "grade": "D+ (Early Stage)",
+    "summary": "Basic foundations present. Significant gaps in validation, testing, and resilience patterns."
+  },
+  "top_3_risks": [
+    {
+      "rank": 1,
+      "risk": "No idempotency for mutations",
+      "impact": "Network retries create duplicate loops/users",
+      "likelihood": "High (happens on poor network)",
+      "severity": "Critical (data corruption)",
+      "evidence": "POST /api/loops has no idempotency key. No optimistic locking on PUT.",
+      "mitigation": "Add Idempotency-Key header + server-side deduplication"
+    },
+    {
+      "rank": 2,
+      "risk": "API routes untested",
+      "impact": "Bugs in production (auth, CRUD)",
+      "likelihood": "Medium (no test coverage)",
+      "severity": "High (security + data loss)",
+      "evidence": "0% coverage for /api/auth, /api/loops. No integration tests.",
+      "mitigation": "Add route integration tests + run in CI"
+    },
+    {
+      "rank": 3,
+      "risk": "Large files violate SRP",
+      "impact": "Hard to maintain, high bug risk",
+      "likelihood": "Medium (existing issue)",
+      "severity": "Medium (technical debt)",
+      "evidence": "audio-engine.ts (762 LOC), IconSequencerWithDensity.tsx (726 LOC)",
+      "mitigation": "Refactor into smaller modules (≤300 LOC each)"
+    }
+  ],
+  "top_3_strengths": [
+    {
+      "rank": 1,
+      "strength": "Strong secret hygiene",
+      "evidence": "No hardcoded secrets. Env + Zod validation. .env.example present.",
+      "value": "Prevents credential leaks"
+    },
+    {
+      "rank": 2,
+      "strength": "Durable persistence architecture",
+      "evidence": "PostgreSQL with ACID + IndexedDB client-side with migrations",
+      "value": "Data safety and reliability"
+    },
+    {
+      "rank": 3,
+      "strength": "Exponential backoff retry",
+      "evidence": "Frontend httpClient retries 500/502/503 with 1s/2s/4s backoff",
+      "value": "Resilience to transient errors"
+    }
+  ],
+  "2pr_minimum_plan": {
+    "philosophy": "Tiny diffs, big impact. Address highest risks first.",
+    "pr1": {
+      "title": "Add idempotency keys to loop creation",
+      "files": [
+        "apps/api/src/routes/loops.ts",
+        "apps/api/src/db/schema.sql (add idempotency_keys table)"
+      ],
+      "acceptance_criteria": [
+        "POST /api/loops accepts Idempotency-Key header",
+        "Server stores key + response in DB (24h TTL)",
+        "Duplicate POST with same key returns cached response",
+        "Test: Verify POST retry doesn't create duplicate loop"
+      ],
+      "tests": "Add integration test: POST twice with same key",
+      "docs": "Update API.md with Idempotency-Key usage"
+    },
+    "pr2": {
+      "title": "Add API route integration tests + run in CI",
+      "files": [
+        "apps/api/src/__tests__/routes/auth.test.ts",
+        "apps/api/src/__tests__/routes/loops.test.ts",
+        ".github/workflows/ci.yml"
+      ],
+      "acceptance_criteria": [
+        "Test all /api/auth routes (signup, login, me)",
+        "Test all /api/loops routes (CRUD + duplicate)",
+        "CI runs API tests and enforces pass",
+        "Coverage ≥60% for routes + services"
+      ],
+      "tests": "Add 10+ route tests covering happy + error paths",
+      "docs": "Update DEVELOPMENT.md with test running instructions"
+    },
+    "pr3_optional": {
+      "title": "Refactor audio-engine.ts into modules",
+      "files": [
+        "packages/engine/src/audio-init.ts",
+        "packages/engine/src/audio-scheduler.ts",
+        "packages/engine/src/audio-fx.ts",
+        "packages/engine/src/audio-state.ts",
+        "packages/engine/src/audio-engine.ts (orchestrator)"
+      ],
+      "acceptance_criteria": [
+        "Each module ≤300 LOC",
+        "All existing tests pass",
+        "No behavior changes (refactor only)",
+        "Clear separation of concerns"
+      ],
+      "tests": "Existing engine tests must pass unchanged",
+      "docs": "Update ARCHITECTURE.md with new module structure"
+    }
+  }
+}

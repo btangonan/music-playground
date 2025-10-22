@@ -1,0 +1,125 @@
+{
+  "threshold_loc": 300,
+  "violation_count": 16,
+  "total_files_analyzed": 280,
+  "files_over_300": [
+    {
+      "file": "packages/engine/src/audio-engine.ts",
+      "loc": 762,
+      "severity": "critical",
+      "complexity": "very_high",
+      "singleResponsibilityViolation": true
+    },
+    {
+      "file": "packages/ui/src/components/sidebar.tsx",
+      "loc": 637,
+      "severity": "critical",
+      "complexity": "high",
+      "note": "UI component library - may be acceptable"
+    },
+    {
+      "file": "apps/composer/src/components/ui/sidebar.tsx",
+      "loc": 726,
+      "severity": "critical",
+      "complexity": "high",
+      "note": "Duplicate of packages/ui - consolidation needed"
+    },
+    {
+      "file": "apps/composer/src/components/IconSequencerWithDensity.tsx",
+      "loc": 726,
+      "severity": "critical",
+      "complexity": "very_high",
+      "singleResponsibilityViolation": true
+    },
+    {
+      "file": "apps/composer/src/components/IconSequencer.tsx",
+      "loc": 467,
+      "severity": "high",
+      "complexity": "high"
+    },
+    {
+      "file": "apps/composer/src/views/LoopLabView.tsx",
+      "loc": 453,
+      "severity": "high",
+      "complexity": "high"
+    },
+    {
+      "file": "apps/composer/src/audio/iconSounds.ts",
+      "loc": 414,
+      "severity": "high",
+      "complexity": "medium",
+      "note": "Likely data-heavy, may be acceptable"
+    },
+    {
+      "file": "packages/engine/src/reverse-reverb.ts",
+      "loc": 384,
+      "severity": "high",
+      "complexity": "high"
+    },
+    {
+      "file": "packages/engine/src/presets.ts",
+      "loc": 377,
+      "severity": "high",
+      "complexity": "medium",
+      "note": "Likely preset data, may be acceptable"
+    },
+    {
+      "file": "apps/composer/src/components/ui/chart.tsx",
+      "loc": 353,
+      "severity": "medium",
+      "complexity": "medium",
+      "note": "UI library component"
+    },
+    {
+      "file": "packages/engine/src/param-curves.ts",
+      "loc": 348,
+      "severity": "medium",
+      "complexity": "medium"
+    },
+    {
+      "file": "apps/composer/src/__tests__/loopApi.e2e.test.ts",
+      "loc": 337,
+      "severity": "medium",
+      "complexity": "medium",
+      "note": "Test file - may be acceptable"
+    },
+    {
+      "file": "packages/engine/src/bus-fx.ts",
+      "loc": 329,
+      "severity": "medium",
+      "complexity": "high"
+    },
+    {
+      "file": "packages/ui/src/components/chart.tsx",
+      "loc": 303,
+      "severity": "low",
+      "complexity": "medium"
+    },
+    {
+      "file": "packages/engine/src/gain-staging.ts",
+      "loc": 281,
+      "severity": "low",
+      "complexity": "medium",
+      "note": "Just under threshold"
+    },
+    {
+      "file": "apps/composer/src/components/ui/menubar.tsx",
+      "loc": 276,
+      "severity": "low",
+      "complexity": "low",
+      "note": "UI library component, under threshold"
+    }
+  ],
+  "highest_loc_file": {
+    "file": "packages/engine/src/audio-engine.ts",
+    "loc": 762,
+    "recommendation": "URGENT: Split into separate concerns (initialization, scheduling, effects, state)"
+  },
+  "summary": {
+    "files_over_500": 2,
+    "files_400_500": 3,
+    "files_300_400": 8,
+    "percentage_oversized": "5.7%",
+    "total_oversized_loc": 6723
+  }
+}

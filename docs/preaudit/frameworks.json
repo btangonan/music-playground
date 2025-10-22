@@ -1,0 +1,91 @@
+{
+  "backend_framework": "Express.js 4.18",
+  "frontend_framework": "React 18.3 + Vite 5.4",
+  "routing": {
+    "backend": "Express Router",
+    "frontend": "react-router-dom 7.9"
+  },
+  "api_routes": {
+    "base_path": "/api",
+    "endpoints": [
+      {
+        "path": "/health",
+        "method": "GET",
+        "auth": "none",
+        "validation": "none"
+      },
+      {
+        "path": "/api/auth/signup",
+        "method": "POST",
+        "auth": "none",
+        "validation": "zod",
+        "schema": "signupSchema"
+      },
+      {
+        "path": "/api/auth/login",
+        "method": "POST",
+        "auth": "none",
+        "validation": "zod",
+        "schema": "loginSchema"
+      },
+      {
+        "path": "/api/auth/me",
+        "method": "GET",
+        "auth": "JWT",
+        "validation": "none"
+      },
+      {
+        "path": "/api/loops",
+        "method": "GET",
+        "auth": "optional",
+        "validation": "query_params"
+      },
+      {
+        "path": "/api/loops/:id",
+        "method": "GET",
+        "auth": "optional",
+        "validation": "none"
+      },
+      {
+        "path": "/api/loops",
+        "method": "POST",
+        "auth": "JWT",
+        "validation": "service_layer"
+      },
+      {
+        "path": "/api/loops/:id",
+        "method": "PUT",
+        "auth": "JWT",
+        "validation": "service_layer"
+      },
+      {
+        "path": "/api/loops/:id",
+        "method": "DELETE",
+        "auth": "JWT",
+        "validation": "none"
+      },
+      {
+        "path": "/api/loops/:id/duplicate",
+        "method": "POST",
+        "auth": "JWT",
+        "validation": "none"
+      }
+    ],
+    "total_routes": 10,
+    "routes_with_validation": 2,
+    "validation_coverage": "20%"
+  },
+  "middleware": {
+    "security": ["helmet", "cors"],
+    "auth": ["JWT (jsonwebtoken)"],
+    "parsing": ["express.json", "express.urlencoded"],
+    "error_handling": ["global error handler", "404 handler"]
+  },
+  "validation_libraries": ["zod 3.23"],
+  "ui_framework": {
+    "library": "Radix UI + shadcn/ui",
+    "styling": "TailwindCSS 3.4",
+    "state_management": "React hooks + Context",
+    "forms": "react-hook-form 7.65"
+  }
+}

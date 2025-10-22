@@ -1,0 +1,108 @@
+{
+  "validation_summary": {
+    "total_routes": 10,
+    "routes_with_request_validation": 4,
+    "routes_with_response_validation": 0,
+    "validation_coverage_percentage": 40,
+    "validation_library": "Zod 3.23"
+  },
+  "route_analysis": [
+    {
+      "endpoint": "POST /api/auth/signup",
+      "request_validation": "✅ Zod schema (signupSchema)",
+      "response_validation": "❌ None",
+      "status": "partial"
+    },
+    {
+      "endpoint": "POST /api/auth/login",
+      "request_validation": "✅ Zod schema (loginSchema)",
+      "response_validation": "❌ None",
+      "status": "partial"
+    },
+    {
+      "endpoint": "GET /api/auth/me",
+      "request_validation": "❌ None (JWT middleware only)",
+      "response_validation": "❌ None",
+      "status": "missing"
+    },
+    {
+      "endpoint": "POST /api/loops",
+      "request_validation": "✅ Zod schema (LoopSchema in service)",
+      "response_validation": "❌ None",
+      "status": "partial"
+    },
+    {
+      "endpoint": "PUT /api/loops/:id",
+      "request_validation": "✅ Zod schema (LoopSchema in service)",
+      "response_validation": "❌ None",
+      "status": "partial"
+    },
+    {
+      "endpoint": "GET /api/loops",
+      "request_validation": "⚠️ Query param parsing only",
+      "response_validation": "❌ None",
+      "status": "weak"
+    },
+    {
+      "endpoint": "GET /api/loops/:id",
+      "request_validation": "❌ None (URL param only)",
+      "response_validation": "❌ None",
+      "status": "missing"
+    },
+    {
+      "endpoint": "DELETE /api/loops/:id",
+      "request_validation": "❌ None (URL param only)",
+      "response_validation": "❌ None",
+      "status": "missing"
+    },
+    {
+      "endpoint": "POST /api/loops/:id/duplicate",
+      "request_validation": "❌ None (URL param only)",
+      "response_validation": "❌ None",
+      "status": "missing"
+    },
+    {
+      "endpoint": "GET /health",
+      "request_validation": "N/A (health check)",
+      "response_validation": "❌ None",
+      "status": "acceptable"
+    }
+  ],
+  "strengths": [
+    "Zod used for complex request payloads (auth, loop CRUD)",
+    "Validation happens at service layer for loop operations",
+    "Shared schema types via @music/types workspace",
+    "Good error handling for validation failures (400 status + details)"
+  ],
+  "weaknesses": [
+    "No response validation - responses not schema-checked",
+    "No query param validation for GET endpoints",
+    "No URL param validation (e.g., UUID format checks)",
+    "Validation inconsistent - some in routes, some in services",
+    "No validation middleware pattern - duplicated try/catch blocks"
+  ],
+  "recommendations": [
+    {
+      "priority": "high",
+      "issue": "Add request validation middleware",
+      "solution": "Create validateRequest(schema) middleware to DRY validation logic"
+    },
+    {
+      "priority": "medium",
+      "issue": "Validate query parameters",
+      "solution": "Add Zod schemas for GET /api/loops query filters"
+    },
+    {
+      "priority": "medium",
+      "issue": "Validate URL parameters",
+      "solution": "Add UUID format validation for :id params"
+    },
+    {
+      "priority": "low",
+      "issue": "Add response validation",
+      "solution": "Validate responses in dev/test to catch schema drift"
+    }
+  ],
+  "validation_score": "1/3",
+  "rationale": "40% of routes have request validation (below 80% target). No response validation. Inconsistent validation patterns."
+}
