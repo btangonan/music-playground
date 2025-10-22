@@ -722,7 +722,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
                 height: `${ICON_BOX}px`,
                 transformOrigin: 'center center',
                 pointerEvents: 'none',
-                backgroundColor: DEBUG ? 'rgba(0, 255, 0, 0.2)' : 'transparent'
+                backgroundColor: DEBUG ? 'rgba(0, 255, 0, 0.2)' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
               }}
             >
               <IconComponent />
