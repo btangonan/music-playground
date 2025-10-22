@@ -232,8 +232,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const cellCenterX = p.bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
       const iconLeft = cellCenterX - ICON_BOX / 2;
       const iconRight = iconLeft + ICON_BOX;
-      // Icon visual position in grid container (same coordinate space as marquee)
-      const iconTop = row * ROW_HEIGHT + gridPaddingTop - (40 - ROW_HEIGHT) / 2;
+      // Icon visual position in grid container (same coordinate space as marquee) - shifted up 2px to match render
+      const iconTop = row * ROW_HEIGHT + gridPaddingTop - (40 - ROW_HEIGHT) / 2 - 2;
       const iconBottom = iconTop + 40; // BLOCK_HEIGHT = 40
 
       // Check if icon intersects with marquee box
@@ -316,10 +316,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     const row = Math.floor(y / ROW_HEIGHT);
     const divisor = SNAP_DIVISOR[resolution];
 
-    // Snap to grid: round cursor position to NEAREST snap point based on resolution
-    // This centers the preview icon on/near the cursor position
+    // Snap to grid: floor to snap point at or before cursor, then center the icon
+    // This ensures the icon lands on the grid line closest to where user dropped
     const cursorBar = x / SIXTEENTH_WIDTH; // Exact bar position of cursor
-    const snappedBar = Math.round(cursorBar / divisor) * divisor; // Round to nearest snap
+    const snappedBar = Math.floor(cursorBar / divisor) * divisor; // Floor to snap point at/before cursor
     const finalSnappedBar = Math.max(0, Math.min(63, snappedBar));
 
     if (DEBUG && resolution === '1/16') {
@@ -554,8 +554,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const rawNewDuration = resizingPlacement.startDuration + deltaSixteenths;
       const snappedDuration = Math.round(rawNewDuration / divisor) * divisor;
 
-      // Minimum 1 sixteenth
-      const minDuration = Math.max(divisor, 1);
+      // Minimum 1 sixteenth - always allow reducing to single note regardless of snap divisor
+      const minDuration = 1;
       let newDuration = Math.max(minDuration, snappedDuration);
 
       // Clamp to loop end (bar 64)
@@ -584,6 +584,37 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     };
   }, [resizingPlacement, placements, resolution]);
 
+  const renderGridLines = () => {
+    // Render vertical grid lines as single overlay to avoid double-line artifacts
+    const lines = [];
+    const divisor = SNAP_DIVISOR[resolution];
+    const totalSixteenths = TIME_STEPS * 4; // 16 quarter notes × 4 sixteenths = 64 sixteenths
+    const sixteenthsPerBar = STEPS_PER_BAR * 4; // 4 quarter notes × 4 sixteenths = 16 sixteenths per bar
+
+    for (let bar = 0; bar <= totalSixteenths; bar += divisor) {
+      const xPos = bar * SIXTEENTH_WIDTH;
+      const isBarBoundary = bar % sixteenthsPerBar === 0; // Every 16 sixteenths = bar boundary
+
+      lines.push(
+        <div
+          key={bar}
+          style={{
+            position: 'absolute',
+            left: `${xPos}px`,
+            top: 0,
+            width: isBarBoundary ? '2px' : '1px', // Bar boundaries are 2px thick
+            height: '100%',
+            backgroundColor: isBarBoundary ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.1)', // Bar boundaries slightly darker
+            pointerEvents: 'none',
+            zIndex: 10
+          }}
+        />
+      );
+    }
+
+    return <>{lines}</>;
+  };
+
   const renderGrid = () => {
     const rows = [];
     const containerHeight = ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10;
@@ -609,13 +640,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         if (chord) { const color = chordColors[chord]; const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); barChordColor = `rgba(${r}, ${g}, ${b}, 0.2)`; }
         let densityColor = 'transparent';
         if (chord && isPlayableRow) { const alpha = densityAlpha(pc, chord); const color = chordColors[chord]; const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); densityColor = `rgba(${r}, ${g}, ${b}, ${alpha})`; }
-        const subdivisionLines: number[] = [];
-        if (resolution === '1/4') { subdivisionLines.push(0); } else if (resolution === '1/8') { subdivisionLines.push(0, COLUMN_WIDTH / 2); } else if (resolution === '1/16') { subdivisionLines.push(0, SIXTEENTH_WIDTH, COLUMN_WIDTH / 2, SIXTEENTH_WIDTH * 3); }
         cells.push(
           <div key={col} className="grid-background" style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0 }}>
             <div style={{ position: 'absolute', inset: 0, backgroundColor: barChordColor, pointerEvents: 'none' }} />
             {isDragging && (<div style={{ position: 'absolute', inset: 0, backgroundColor: densityColor, pointerEvents: 'none' }} />)}
-            {subdivisionLines.map((xPos, idx) => (<div key={`subdiv-${idx}`} style={{ position: 'absolute', left: `${xPos}px`, top: 0, width: '1px', height: '100%', backgroundColor: 'rgba(0,0,0,0.1)', pointerEvents: 'none' }} />))}
           </div>
         );
       }
@@ -643,8 +671,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       const widthPx = (p.duration16 ?? 1) * SIXTEENTH_WIDTH;
       const rowTop = row * ROW_HEIGHT + gridPaddingTop;
 
-      // Center the container on the grid row
-      const blockTop = rowTop - (BLOCK_HEIGHT - ROW_HEIGHT) / 2;
+      // Center the container on the grid row, shifted up slightly for better visual alignment
+      const blockTop = rowTop - (BLOCK_HEIGHT - ROW_HEIGHT) / 2 - 2;
 
       // Calculate bar dimensions - start at icon center with fade
       const BAR_START_OFFSET = ICON_BOX / 2; // Start at icon center (20px)
@@ -731,7 +759,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
                     height: '40px',
                     borderRadius: '8px',
                     border: '1px solid',
-                    backgroundColor: 'white',
+                    backgroundColor: 'transparent',
                     pointerEvents: 'none',
                     zIndex: -1
                   }}
@@ -954,12 +982,13 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         {cNotes.map(({ midi, noteName, yPosition }) => (
           <div
             key={midi}
-            className="absolute text-xs font-medium text-gray-500"
+            className="absolute font-medium text-gray-500"
             style={{
               top: `${yPosition}px`,
               left: '8px',
               lineHeight: `${ROW_HEIGHT}px`,
               height: `${ROW_HEIGHT}px`,
+              fontSize: '10px',
               userSelect: 'none'
             }}
           >
@@ -973,10 +1002,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   return (
     <div className="flex flex-row">
       {/* Sequencer grid with scroll-based pitch control */}
-      <div className="relative flex flex-col items-start gap-2">
+      <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
         <div
           ref={outerWrapperRef}
-          className="relative flex items-center justify-start"
+          className="relative flex items-center justify-center"
           style={{ width: `${GRID_TOTAL_WIDTH + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
           onDragOver={!assignmentMode ? handleDragOver : undefined}
           onDragLeave={!assignmentMode ? handleDragLeave : undefined}
@@ -1009,10 +1038,49 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               }
             }}
           >
+            {/* Step numbers at bottom of grid */}
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '8px',
+                left: '0',
+                display: 'flex',
+                height: '16px',
+                width: '100%',
+                zIndex: 200,
+                pointerEvents: 'none'
+              }}
+            >
+              {Array.from({ length: TIME_STEPS }).map((_, index) => {
+                // Show numbers at steps 1, 5, 9, 13 (every 4th step, 1-indexed)
+                const showNumber = index % 4 === 0;
+
+                return (
+                  <div
+                    key={index}
+                    style={{
+                      width: `${COLUMN_WIDTH}px`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontFamily: 'Inter',
+                      fontSize: '12px',
+                      lineHeight: '16px',
+                      fontWeight: 500,
+                      color: 'rgba(0,0,0,0.55)'
+                    }}
+                  >
+                    {showNumber ? index + 1 : ''}
+                  </div>
+                );
+              })}
+            </div>
+
             {renderGrid()}
+            {renderGridLines()}
             {renderHoverOverlay()}
             {!assignmentMode && renderPlacements()}
-            {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#000000', pointerEvents: 'none', zIndex: 150 }} />)}
+            {isPlaying && (<div style={{ position: 'absolute', left: `${currentStep * COLUMN_WIDTH}px`, top: 0, width: '2px', height: '100%', backgroundColor: '#00D9FF', pointerEvents: 'none', zIndex: 150 }} />)}
 
             {/* Marquee selection rectangle */}
             {marquee && (
@@ -1059,7 +1127,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             )}
           </div>
         </div>
-        <div style={{ width: `${GRID_TOTAL_WIDTH}px`, display: 'flex', justifyContent: 'center' }}>
+        <div style={{ width: `${GRID_TOTAL_WIDTH}px`, paddingLeft: `${GRID_BORDER_WIDTH}px` }}>
           <ChordLabels
             barChords={barChords}
             gridBorderWidth={GRID_BORDER_WIDTH}

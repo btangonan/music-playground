@@ -391,7 +391,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Noise',
     category: 'fx',
     type: 'rhythmic',
-    volume: -15, // Normalized for master bus dynamics
+    volume: -4, // Increased to -4dB for more presence
     oneShot: true, // sustain=0, let envelope control sound length
     toneConfig: {
       synthType: 'NoiseSynth',

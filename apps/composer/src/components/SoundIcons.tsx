@@ -223,24 +223,24 @@ export const NoiseIcon = () => (
 );
 
 export const SOUND_ICONS = [
-  { id: 'lead', name: 'Lead', category: 'synths', categoryLabel: '🎹 Synths', icon: LeadSynthIcon, color: '#FF62C6' }, // Pink stroke
-  { id: 'impact', name: 'Impact', category: 'fx', categoryLabel: '✨ FX', icon: ImpactIcon, color: '#FFD11A' }, // Yellow star
-  { id: 'sweep', name: 'Sweep', category: 'fx', categoryLabel: '✨ FX', icon: SweepIcon, color: '#CDB3FF' }, // Purple curve
-  { id: 'vocal', name: 'Vocal', category: 'fx', categoryLabel: '✨ FX', icon: VocalChopIcon, color: '#CDB3FF' }, // Purple ellipse
-  { id: 'sub', name: 'Sub', category: 'bass', categoryLabel: '🔊 Bass', icon: SubBassIcon, color: '#9945FF' }, // Purple center square
-  { id: 'wobble', name: 'Wobble', category: 'bass', categoryLabel: '🔊 Bass', icon: WobbleIcon, color: '#7AB800' }, // Green curves
-  { id: 'pad', name: 'Pad', category: 'synths', categoryLabel: '🎹 Synths', icon: PadSynthIcon, color: '#000000' }, // Black lunar eclipse
-  { id: 'pluck', name: 'Radial Synth', category: 'synths', categoryLabel: '🎹 Synths', icon: PluckIcon, color: '#00FFD9' }, // Cyan circles
-  { id: 'arp', name: 'Arp', category: 'synths', categoryLabel: '🎹 Synths', icon: ArpIcon, color: '#FFD11A' }, // Yellow top circle
+  { id: 'lead', name: 'Round', category: 'synths', categoryLabel: '🎹 Synths', icon: LeadSynthIcon, color: '#FF62C6' }, // Pink stroke - soft not bright, very round
+  { id: 'impact', name: 'Saw', category: 'fx', categoryLabel: '✨ FX', icon: ImpactIcon, color: '#FFD11A' }, // Yellow star - serrated knife sound, harsh
+  { id: 'sweep', name: 'Warm', category: 'fx', categoryLabel: '✨ FX', icon: SweepIcon, color: '#CDB3FF' }, // Purple curve - round and warm like plastic tube
+  { id: 'vocal', name: 'Bell', category: 'fx', categoryLabel: '✨ FX', icon: VocalChopIcon, color: '#CDB3FF' }, // Purple ellipse - really wide, like a bell
+  { id: 'sub', name: 'Sub', category: 'bass', categoryLabel: '🔊 Bass', icon: SubBassIcon, color: '#9945FF' }, // Purple center square - bass with slight pluck
+  { id: 'wobble', name: 'Bass', category: 'bass', categoryLabel: '🔊 Bass', icon: WobbleIcon, color: '#7AB800' }, // Green curves - synth bass
+  { id: 'pad', name: 'Piano', category: 'synths', categoryLabel: '🎹 Synths', icon: PadSynthIcon, color: '#000000' }, // Black lunar eclipse - grand piano
+  { id: 'pluck', name: 'Sine', category: 'synths', categoryLabel: '🎹 Synths', icon: PluckIcon, color: '#00FFD9' }, // Cyan circles - clean sine tone
+  { id: 'arp', name: '8-bit', category: 'synths', categoryLabel: '🎹 Synths', icon: ArpIcon, color: '#FFD11A' }, // Yellow top circle - video game synth
 
-  { id: 'kick', name: 'Kick', category: 'drums', categoryLabel: '🥁 Drums', icon: KickIcon, color: '#CCFF00' }, // Lime green circle
-  { id: 'noise', name: 'Noise', category: 'fx', categoryLabel: '✨ FX', icon: NoiseIcon, color: '#CDB3FF' }, // Purple arrow
-  { id: 'snare', name: 'Snare', category: 'drums', categoryLabel: '🥁 Drums', icon: SnareIcon, color: '#CCFF00' }, // Lime green hexagon
-  { id: 'clap', name: 'Clap', category: 'drums', categoryLabel: '🥁 Drums', icon: ClapIcon, color: '#CCFF00' }, // Lime green hands
+  { id: 'kick', name: 'Kick', category: 'drums', categoryLabel: '🥁 Drums', icon: KickIcon, color: '#CCFF00' }, // Lime green circle - kick drum
+  { id: 'noise', name: 'Electro', category: 'fx', categoryLabel: '✨ FX', icon: NoiseIcon, color: '#CDB3FF' }, // Purple arrow - noise for electro/video game
+  { id: 'snare', name: 'Snare', category: 'drums', categoryLabel: '🥁 Drums', icon: SnareIcon, color: '#CCFF00' }, // Lime green hexagon - noise slap snare
+  { id: 'clap', name: 'Clap', category: 'drums', categoryLabel: '🥁 Drums', icon: ClapIcon, color: '#CCFF00' }, // Lime green hands - high pitched punch
 
-  { id: 'hihat', name: 'Hi-hat', category: 'drums', categoryLabel: '🥁 Drums', icon: HiHatIcon, color: '#808080' }, // Gray ellipses
-  { id: 'glitch', name: 'Glitch', category: 'fx', categoryLabel: '✨ FX', icon: GlitchIcon, color: '#FF62C6' }, // Pink triangle
-  { id: 'riser', name: 'Riser', category: 'fx', categoryLabel: '✨ FX', icon: RiserIcon, color: '#808080' }, // Gray squares
+  { id: 'hihat', name: 'Hat', category: 'drums', categoryLabel: '🥁 Drums', icon: HiHatIcon, color: '#808080' }, // Gray ellipses - metal hi hat
+  { id: 'glitch', name: 'Tick', category: 'fx', categoryLabel: '✨ FX', icon: GlitchIcon, color: '#FF62C6' }, // Pink triangle - closed hi hat tick
+  { id: 'riser', name: 'Riser', category: 'fx', categoryLabel: '✨ FX', icon: RiserIcon, color: '#808080' }, // Gray squares - white noise riser
 ];
 
 export const CATEGORIES = [
