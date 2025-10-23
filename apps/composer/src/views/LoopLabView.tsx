@@ -6,6 +6,7 @@ import IconGallery from '../components/IconGallery';
 import IconSequencerWithDensity from '../components/IconSequencerWithDensity';
 import StepNumbers from '../components/StepNumbers';
 import MidiInfoModal from '../components/MidiInfoModal';
+import ShareButton from '../components/ShareButton';
 import { type Chord } from '../components/chordData';
 import { AudioEngine } from '../audio/AudioEngine';
 import { mapSoundId } from '../audio/soundIdMapper';
@@ -17,6 +18,7 @@ import type { Loop, ChordCell, IconStep } from '@music/types/schemas';
 import { useToast } from '../components/ToastContext';
 import { useAuth } from '../hooks/useAuth';
 import { useUndo } from '../hooks/useUndo';
+import { useGistImport } from '../hooks/useGistImport';
 import '../fonts.css';
 
 type GridResolution = '1/4' | '1/8' | '1/16';
@@ -26,6 +28,9 @@ export default function LoopLabView() {
   useAuth();
 
   const { showToast } = useToast();
+
+  // Handle gist import from URL
+  const gistImport = useGistImport();
   const [isPlaying, setIsPlaying] = useState(false);
   const [bpm, setBpm] = useState(120);
   const [selectedSound, setSelectedSound] = useState<string | null>(null);
@@ -439,6 +444,16 @@ export default function LoopLabView() {
 
   useEffect(() => { const loadLoopFromUrl = async () => { const url = new URL(window.location.href); const loopId = url.searchParams.get('loopId'); if (!loopId) { return; } try { const loop = await loopsApi.getLoop(loopId); deserializeLoop(loop); console.log('Loop loaded successfully:', loop.id); } catch (error) { const { message } = formatApiError(error); console.error('Failed to load loop:', message); showToast(`Failed to load loop: ${message}`, 'error'); const newUrl = new URL(window.location.href); newUrl.searchParams.delete('loopId'); window.history.replaceState(null, '', newUrl.toString()); } }; loadLoopFromUrl(); }, []);
 
+  // Handle gist import
+  useEffect(() => {
+    if (gistImport.loop) {
+      deserializeLoop(gistImport.loop);
+      showToast(`Loaded shared loop: ${gistImport.loop.name}`, 'success');
+    } else if (gistImport.error) {
+      showToast(`Failed to load shared loop: ${gistImport.error}`, 'error');
+    }
+  }, [gistImport.loop, gistImport.error]);
+
   return (
     <div className="min-h-screen p-6" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Inter, system-ui, sans-serif' }}>
       <div className="max-w-[900px] mx-auto">
@@ -452,6 +467,17 @@ export default function LoopLabView() {
         </div>
 
         <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
+
+        {/* Share Button */}
+        {currentLoopId && (
+          <div className="flex justify-end mb-2">
+            <ShareButton loop={{
+              ...serializeLoop(),
+              id: currentLoopId,
+              updatedAt: lastSaved?.toISOString() || new Date().toISOString()
+            }} />
+          </div>
+        )}
 
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
           {/* Icon Gallery at top */}

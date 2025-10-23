@@ -19,7 +19,7 @@
     {
       "name": "composer bundle",
       "path": "apps/composer/dist/assets/*.js",
-      "limit": "150 KB"
+      "limit": "180 KB"
     }
   ]
 }
