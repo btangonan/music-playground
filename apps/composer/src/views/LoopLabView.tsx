@@ -105,7 +105,7 @@ export default function LoopLabView() {
       name: loopName,
       bars: 4,
       color: '#FFD11A',
-      bpm,
+      bpm: Math.round(bpm) || 120,
       chordProgression,
       iconSequence,
       schemaVersion: 1,
@@ -114,7 +114,7 @@ export default function LoopLabView() {
 
   const deserializeLoop = (loop: Loop) => {
     setLoopName(loop.name);
-    setBpm(loop.bpm);
+    setBpm(Math.round(loop.bpm) || 120);
 
     const newBarChords: (Chord | null)[] = Array(4).fill(null);
     loop.chordProgression.forEach(cell => { if (cell.bar >= 0 && cell.bar < 4) newBarChords[cell.bar] = cell.chord as Chord; });
@@ -345,7 +345,7 @@ export default function LoopLabView() {
     } else { setPitchRange(null); }
 
     // Auto-sync BPM from MIDI file
-    setBpm(metadata.bpm);
+    setBpm(Math.round(metadata.bpm) || 120);
 
     // Clear chord progression on MIDI import (chords don't match MIDI content)
     setBarChords([null, null, null, null]);
@@ -455,8 +455,29 @@ export default function LoopLabView() {
   }, [gistImport.loop, gistImport.error]);
 
   return (
-    <div className="min-h-screen p-6" style={{ backgroundColor: '#FFFFFF', fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div className="max-w-[900px] mx-auto">
+    <div className="min-h-screen flex items-center p-6" style={{ position: 'relative', fontFamily: 'Inter, system-ui, sans-serif', paddingTop: '40px', paddingBottom: '200px' }}>
+      {/* Video Background */}
+      <video
+        autoPlay
+        loop
+        muted
+        playsInline
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          minWidth: '100%',
+          minHeight: '100%',
+          width: '100vw',
+          height: '100vh',
+          objectFit: 'cover',
+          zIndex: -1
+        }}
+      >
+        <source src="/sky3.mp4" type="video/mp4" />
+      </video>
+
+      <div className="max-w-[900px] mx-auto w-full">
         <div className="text-center mb-6">
           <h1 style={{ fontFamily: 'Satoshi, Inter, system-ui, sans-serif', fontWeight: 900, fontSize: '32px', marginBottom: '4px' }}>
             Loop Lab
@@ -466,7 +487,8 @@ export default function LoopLabView() {
           </p>
         </div>
 
-        <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
+        <div>
+          <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
 
         {/* Share Button */}
         {currentLoopId && (
@@ -480,25 +502,26 @@ export default function LoopLabView() {
         )}
 
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
-          {/* Icon Gallery at top */}
-          <div className="flex items-center justify-start" style={{ height: '56px', paddingTop: '8px', paddingBottom: '4px', paddingLeft: '32px' }}>
-            <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
-          </div>
-
           {/* Chord and Preset buttons row */}
-          <div className="flex items-center justify-start gap-2 py-1" style={{ paddingLeft: '24px' }}>
+          <div className="flex items-center justify-center gap-2 py-2" style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
             <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
           </div>
 
+          {/* Icon Gallery */}
+          <div className="flex items-center justify-center">
+            <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
+          </div>
+
           {/* Main sequencer area */}
-          <div className="px-4 pb-4 pt-2 flex flex-col items-start" style={{ paddingLeft: '56px' }}>
+          <div className="px-4 pb-4 flex flex-col items-start" style={{ paddingLeft: '56px', marginTop: '-2px' }}>
             <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
           </div>
         </div>
 
-        <p className="text-[rgba(0,0,0,0.4)] mt-2 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
-          {assignmentMode ? `Click a bar to assign chord "${assignmentMode}"` : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
-        </p>
+          <p className="text-[rgba(0,0,0,0.4)] mt-2 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
+            {assignmentMode ? `Click a bar to assign chord "${assignmentMode}"` : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
+          </p>
+        </div>
 
         {midiMetadata && (<MidiInfoModal isOpen={showMidiModal} onClose={() => setShowMidiModal(false)} metadata={midiMetadata} currentBpm={bpm} onSyncBpm={handleSyncBpmToMidi} />)}
       </div>

@@ -157,12 +157,13 @@ export default function TopBar({
             </span>
             <input
               type="number"
-              value={bpm}
+              value={Math.round(bpm)}
               onChange={(e) => onBpmChange(parseInt(e.target.value) || 120)}
               className="w-12 text-center bg-transparent outline-none"
               style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '14px' }}
               min="60"
               max="200"
+              step="1"
             />
           </div>
 
