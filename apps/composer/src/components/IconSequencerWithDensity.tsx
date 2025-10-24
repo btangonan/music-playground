@@ -1076,14 +1076,14 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       }}>
         {isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | {COLUMN_WIDTH}px cols | {gridTotalWidth}px grid
         <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>
-          v3-PROP-FIX | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
+          v4-CENTER | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
         </div>
       </div>
       {/* Sequencer grid with scroll-based pitch control */}
       <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
         {/* Mobile scroll container - max height on mobile, full height on desktop */}
         <div
-          className={isMobile ? "overflow-auto w-full" : ""}
+          className={isMobile ? "overflow-auto w-full flex justify-center" : ""}
           style={isMobile ? {
             maxHeight: '60vh',
             WebkitOverflowScrolling: 'touch',
