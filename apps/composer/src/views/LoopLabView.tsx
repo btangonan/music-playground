@@ -595,7 +595,7 @@ export default function LoopLabView() {
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
           {/* Chord and Preset buttons row */}
           <div className="flex items-center justify-center gap-2 py-2" style={{ borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
-            <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" />
+            <ChordPalette selectedChord={assignmentMode} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} layout="horizontal" isMobile={isMobile} />
           </div>
 
           {/* Icon Gallery */}
@@ -612,7 +612,7 @@ export default function LoopLabView() {
           </div>
 
           {/* Main sequencer area */}
-          <div className={`px-4 pb-4 flex flex-col ${isMobile ? 'items-center' : 'items-start'}`} style={{ paddingLeft: isMobile ? '0' : '56px', marginTop: '-2px' }}>
+          <div className={`px-4 pb-4 flex flex-col ${isMobile ? 'items-center' : 'items-start'}`} style={{ paddingLeft: isMobile ? '0' : '56px', paddingRight: isMobile ? '0' : '16px', marginTop: '-2px' }}>
             <IconSequencerWithDensity
               selectedSound={selectedSound}
               selectedKey={selectedKey}

@@ -1,3 +1,4 @@
+import { useState, useRef } from 'react';
 import { SOUND_ICONS } from './SoundIcons';
 
 interface IconGalleryProps {
@@ -11,6 +12,8 @@ interface IconGalleryProps {
 }
 
 export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile }: IconGalleryProps) {
+  const [longPressSound, setLongPressSound] = useState<string | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   return (
     <div
       className={isMobile ? "w-full" : "flex items-center justify-center"}
@@ -34,16 +37,46 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
               style={isMobile ? { width: '100%' } : { width: '44px' }}
             >
               <div
-                draggable
+                draggable={!isMobile || longPressSound === sound.id}
                 onClick={() => {
-                  onSelectSound(sound.id);
-                  onSelectSoundForPlacement?.(sound.id);
-                  onPreviewSound?.(sound.id);
+                  // Mobile: tap to select, then tap again to place
+                  if (isMobile && longPressSound !== sound.id) {
+                    onSelectSound(sound.id);
+                    onSelectSoundForPlacement?.(sound.id);
+                    onPreviewSound?.(sound.id);
+                  }
+                  // Desktop: no click action, just drag
+                }}
+                onTouchStart={(e) => {
+                  if (isMobile) {
+                    longPressTimerRef.current = setTimeout(() => {
+                      setLongPressSound(sound.id);
+                      onSelectSound(sound.id);
+                      onDragStart?.(sound.id);
+                      // Trigger vibration if supported
+                      if ('vibrate' in navigator) {
+                        navigator.vibrate(50);
+                      }
+                    }, 500);
+                  }
+                }}
+                onTouchEnd={() => {
+                  if (isMobile && longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    if (longPressSound === sound.id) {
+                      setLongPressSound(null);
+                    }
+                  }
+                }}
+                onTouchMove={() => {
+                  if (isMobile && longPressTimerRef.current && longPressSound !== sound.id) {
+                    clearTimeout(longPressTimerRef.current);
+                  }
                 }}
                 className={`
                   flex-shrink-0 cursor-pointer flex items-center justify-center relative
                   transition-all duration-150
-                  ${isSelected ? 'scale-110 ring-4 ring-blue-500 rounded-full' : 'hover:scale-110'}
+                  ${isSelected ? 'scale-110' : 'hover:scale-110'}
                 `}
                 style={isMobile ? {
                   width: '100%',

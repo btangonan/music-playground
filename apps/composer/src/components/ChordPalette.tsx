@@ -6,12 +6,13 @@ interface ChordPaletteProps {
   onChordSelect: (chord: Chord | null) => void;
   onPresetSelect: (preset: string) => void;
   layout?: 'horizontal' | 'vertical';
+  isMobile?: boolean;
 }
 
 const CHORDS: Chord[] = ['I', 'ii', 'iii', 'IV', 'V', 'vi', 'bVII', 'sus', 'dim', '+7'];
 const PRESETS = ['Pop', 'Sad', 'Chill', 'Shoegaze'];
 
-export default function ChordPalette({ selectedChord, onChordSelect, onPresetSelect, layout = 'horizontal' }: ChordPaletteProps) {
+export default function ChordPalette({ selectedChord, onChordSelect, onPresetSelect, layout = 'horizontal', isMobile = false }: ChordPaletteProps) {
   const handleChordClick = (chord: Chord) => {
     if (selectedChord === chord) {
       onChordSelect(null); // Deselect
@@ -73,42 +74,47 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
   return (
     <div
       className="bg-white overflow-x-auto"
-      style={{ minHeight: '32px', padding: '8px' }}
+      style={{ minHeight: isMobile ? '28px' : '32px', padding: isMobile ? '6px 4px' : '8px' }}
     >
-      <div className="flex items-center gap-3 min-w-max">
+      <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-3'} min-w-max`}>
         {/* Left: Label + Chord Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} shrink-0`}>
           <span
             className="text-[rgba(0,0,0,0.55)]"
-            style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px', lineHeight: '16px' }}
+            style={{
+              fontFamily: 'Inter',
+              fontWeight: 500,
+              fontSize: isMobile ? '9px' : '12px',
+              lineHeight: isMobile ? '12px' : '16px'
+            }}
           >
             CHORDS:
           </span>
 
-          <div className="flex items-center gap-1">
+          <div className={`flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'}`}>
             {CHORDS.map((chord) => {
               const isSelected = selectedChord === chord;
               const color = chordColors[chord];
-              
+
               // Convert hex to rgba - always show color, more saturated when selected
               const r = parseInt(color.slice(1, 3), 16);
               const g = parseInt(color.slice(3, 5), 16);
               const b = parseInt(color.slice(5, 7), 16);
-              const bgColor = isSelected 
+              const bgColor = isSelected
                 ? `rgba(${r}, ${g}, ${b}, 0.5)` // 50% opacity when selected
                 : `rgba(${r}, ${g}, ${b}, 0.25)`; // 25% opacity by default
-              
+
               return (
                 <button
                   key={chord}
                   onClick={() => handleChordClick(chord)}
                   className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
                   style={{
-                    minWidth: '36px',
-                    minHeight: '36px',
-                    borderRadius: '8px',
+                    minWidth: isMobile ? '22px' : '36px',
+                    minHeight: isMobile ? '22px' : '36px',
+                    borderRadius: isMobile ? '6px' : '8px',
                     fontFamily: 'Inter',
-                    fontSize: '11px',
+                    fontSize: isMobile ? '8px' : '11px',
                     fontWeight: isSelected ? 600 : 500,
                     backgroundColor: bgColor,
                     cursor: 'pointer',
@@ -133,27 +139,32 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
         </div>
 
         {/* Right: Preset Label + Buttons */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} shrink-0`}>
           <span
             className="text-[rgba(0,0,0,0.55)]"
-            style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px', lineHeight: '16px' }}
+            style={{
+              fontFamily: 'Inter',
+              fontWeight: 500,
+              fontSize: isMobile ? '9px' : '12px',
+              lineHeight: isMobile ? '12px' : '16px'
+            }}
           >
             PRESETS:
           </span>
 
-          <div className="flex items-center gap-1">
+          <div className={`flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'}`}>
             {PRESETS.map((preset) => (
               <button
                 key={preset}
                 onClick={() => onPresetSelect(preset)}
                 className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
                 style={{
-                  minWidth: '56px',
-                  minHeight: '36px',
-                  padding: '0 8px',
-                  borderRadius: '8px',
+                  minWidth: isMobile ? '36px' : '56px',
+                  minHeight: isMobile ? '22px' : '36px',
+                  padding: isMobile ? '0 4px' : '0 8px',
+                  borderRadius: isMobile ? '6px' : '8px',
                   fontFamily: 'Inter',
-                  fontSize: '11px',
+                  fontSize: isMobile ? '8px' : '11px',
                   fontWeight: 500,
                   backgroundColor: 'white',
                   cursor: 'pointer'

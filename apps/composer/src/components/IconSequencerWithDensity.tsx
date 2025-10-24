@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
 import ChordLabels from './ChordLabels';
-import { SEQUENCER_LAYOUT, getRowHeight, getColumnWidth } from './sequencerLayout';
+import { SEQUENCER_LAYOUT, getRowHeight, getColumnWidth, getTotalSemitones } from './sequencerLayout';
 import { useMultiSelection } from '../hooks/useMultiSelection';
 
 interface IconPlacement {
@@ -53,8 +53,8 @@ function ensurePlacementIds(placements: IconPlacement[]): IconPlacement[] {
 }
 
 // Shared constants from sequencerLayout
-// Note: ROW_HEIGHT and COLUMN_WIDTH are dynamic - use getRowHeight(isMobile) and getColumnWidth(isMobile)
-const { TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
+// Note: ROW_HEIGHT, COLUMN_WIDTH, and TOTAL_SEMITONES are dynamic - use getRowHeight(isMobile), getColumnWidth(isMobile), getTotalSemitones(isMobile)
+const { TIME_STEPS, STEPS_PER_BAR, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
 
 const BARS = 4;
 const BASE_MIDI = 48;
@@ -79,6 +79,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   // Responsive dimensions - mobile uses smaller cells to fit screen width
   const ROW_HEIGHT = getRowHeight(isMobile || false);
   const COLUMN_WIDTH = getColumnWidth(isMobile || false);
+  const TOTAL_SEMITONES = getTotalSemitones(isMobile || false);
 
   // Derived widths based on responsive COLUMN_WIDTH
   const EIGHTH_WIDTH = COLUMN_WIDTH / 2;
@@ -1076,25 +1077,29 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       }}>
         {isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | {COLUMN_WIDTH}px cols | {gridTotalWidth}px grid
         <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>
-          v12-PADDING | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
+          v13-CENTERED | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
         </div>
       </div>
       {/* Sequencer grid with scroll-based pitch control */}
       <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
         {/* Mobile scroll container - max height on mobile, full height on desktop */}
         <div
-          className={isMobile ? "overflow-auto w-full flex justify-center" : ""}
+          className={isMobile ? "w-full flex justify-center" : ""}
           style={isMobile ? {
-            maxHeight: '60vh',
-            WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            paddingBottom: '10px'
+            WebkitOverflowScrolling: 'touch'
           } : {}}
         >
           <div
             ref={outerWrapperRef}
             className="relative flex items-center justify-center"
-            style={{ width: `${gridTotalWidth + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+            style={{
+              width: isMobile ? `${gridTotalWidth}px` : `${gridTotalWidth + WRAPPER_PADDING * 2}px`,
+              height: isMobile
+                ? `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`
+                : `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px`,
+              marginTop: isMobile ? '16px' : '0',
+              marginBottom: isMobile ? '12px' : '0'
+            }}
             onDragOver={!assignmentMode ? handleDragOver : undefined}
             onDragLeave={!assignmentMode ? handleDragLeave : undefined}
             onDrop={!assignmentMode ? handleDrop : undefined}
@@ -1217,7 +1222,12 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         </div>
         {/* Close mobile scroll container */}
         </div>
-        <div style={{ width: `${gridTotalWidth}px`, paddingLeft: `${GRID_BORDER_WIDTH}px` }}>
+        <div style={{
+          width: `${gridTotalWidth}px`,
+          paddingLeft: `${GRID_BORDER_WIDTH}px`,
+          display: 'flex',
+          justifyContent: 'center'
+        }}>
           <ChordLabels
             barChords={barChords}
             columnWidth={COLUMN_WIDTH}

@@ -18,7 +18,8 @@ export const SEQUENCER_LAYOUT = {
   ROW_HEIGHT_MOBILE: 16,  // Height of one semitone row on mobile (px) - compact for mobile screens
   TIME_STEPS: 16,         // 16 quarter notes = 4 bars
   STEPS_PER_BAR: 4,       // 4 quarter notes per bar
-  TOTAL_SEMITONES: 37,    // 3 octaves + 1 (C to C inclusive)
+  TOTAL_SEMITONES: 37,    // 3 octaves + 1 (C to C inclusive) - desktop
+  TOTAL_SEMITONES_MOBILE: 25, // 2 octaves + 1 (C to C inclusive) - mobile for comfortable UX (16×25=400px)
   WRAPPER_PADDING: 15,    // Buffer zone around grid for edge drop detection (px)
   GRID_BORDER_WIDTH: 2,   // Grid border width - must match Tailwind border-2 class
 } as const;
@@ -35,6 +36,13 @@ export const getColumnWidth = (isMobile: boolean): number => {
  */
 export const getRowHeight = (isMobile: boolean): number => {
   return isMobile ? SEQUENCER_LAYOUT.ROW_HEIGHT_MOBILE : SEQUENCER_LAYOUT.ROW_HEIGHT;
+};
+
+/**
+ * Get responsive total semitones based on viewport width
+ */
+export const getTotalSemitones = (isMobile: boolean): number => {
+  return isMobile ? SEQUENCER_LAYOUT.TOTAL_SEMITONES_MOBILE : SEQUENCER_LAYOUT.TOTAL_SEMITONES;
 };
 
 /**
