@@ -504,7 +504,7 @@ export default function LoopLabView() {
   }, [gistImport.loop, gistImport.error]);
 
   return (
-    <div className="min-h-screen flex items-center p-6" style={{ position: 'relative', fontFamily: 'Inter, system-ui, sans-serif', paddingTop: '40px', paddingBottom: '200px' }}>
+    <div className={`min-h-screen flex ${isMobile ? 'items-start' : 'items-center'} p-6`} style={{ position: 'relative', fontFamily: 'Inter, system-ui, sans-serif', paddingTop: '40px', paddingBottom: '200px' }}>
       {/* Background: Video on desktop, gradient on mobile */}
       {!isMobile ? (
         <video

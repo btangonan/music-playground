@@ -1050,7 +1050,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         <div
           className={isMobile ? "overflow-y-auto w-full" : ""}
           style={isMobile ? {
-            maxHeight: '500px',
+            maxHeight: '60vh',
             WebkitOverflowScrolling: 'touch',
             scrollbarWidth: 'thin'
           } : {}}

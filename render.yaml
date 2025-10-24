@@ -1,0 +1,64 @@
+# Render Blueprint for Music Playground
+# Deploy all services with: render blueprint deploy
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: music-playground-db
+    plan: free
+    region: oregon
+    databaseName: music_playground
+    databaseUser: music_user
+
+  # API Backend (Web Service)
+  - type: web
+    name: music-playground-api
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: cd apps/api && pnpm install && pnpm build
+    startCommand: cd apps/api && pnpm db:migrate && pnpm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SERVER_PORT
+        value: 3001
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: DATABASE_URL
+        fromDatabase:
+          name: music-playground-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGIN
+        fromService:
+          type: web
+          name: music-playground-composer
+          property: url
+
+  # Composer Frontend (Static Site)
+  - type: web
+    name: music-playground-composer
+    runtime: static
+    region: oregon
+    buildCommand: pnpm install && pnpm -w -F composer build
+    staticPublishPath: apps/composer/dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: music-playground-api
+          envVarKey: url
+          property: url
+        value: /api
+        sync: false
+
+# Notes:
+# 1. Push this file to your repo root
+# 2. Connect repo to Render dashboard
+# 3. Render auto-detects render.yaml and creates all services
+# 4. Environment variables are auto-linked between services
+# 5. JWT_SECRET is auto-generated securely
