@@ -4,19 +4,19 @@
 
 vite v5.4.20 building for production...
 transforming...
-(node:58613) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(node:75622) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
 (Use `node --trace-warnings ...` to show where the warning was created)
 
 A PostCSS plugin did not pass the `from` option to `postcss.parse`. This may cause imported assets to be incorrectly transformed. If you've recently added a PostCSS plugin that raised this warning, please contact the package author to fix the issue.
 ✓ 3118 modules transformed.
 rendering chunks...
 computing gzip size...
-dist/index.html                   1.16 kB │ gzip:   0.53 kB
+dist/index.html                   1.16 kB │ gzip:   0.52 kB
 dist/assets/index-YFO-jazg.css   65.60 kB │ gzip:  11.72 kB
-dist/assets/index-VKHdiYlB.js   721.96 kB │ gzip: 206.95 kB
+dist/assets/index-BsEdMsFp.js   723.26 kB │ gzip: 207.38 kB
 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 1.67s
+✓ built in 1.74s

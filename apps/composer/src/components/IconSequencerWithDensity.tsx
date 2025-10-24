@@ -546,7 +546,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         console.log('➕ ADDING new placement at bar:', finalSnappedBar, 'pitch:', pitch);
         console.log('📋 Current placements:', placements.length, '→ New count:', placements.length + 1);
       }
-      const np: IconPlacement = { id: crypto.randomUUID(), soundId, bar: finalSnappedBar, pitch, velocity: 80 };
+      const np: IconPlacement = { id: crypto.randomUUID(), soundId, bar: finalSnappedBar, pitch, velocity: 90 };
       setPlacements([...placements, np]);
       onPreviewNote?.(soundId, pitch);
     }

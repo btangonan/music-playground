@@ -214,7 +214,7 @@ export default function LoopLabView() {
         bar: quantizeBar(bar),
         pitch,
         row: 0,
-        velocity: 80,
+        velocity: 90,
         duration16: 1
       };
       setPlacements([...placements, newPlacement]);
@@ -373,7 +373,7 @@ export default function LoopLabView() {
     }
 
     console.log('[LoopLabView] Scheduling preview note:', engineSoundId, note);
-    const success = engine.scheduleNote(engineSoundId, note, '+0', 0.7);
+    const success = engine.scheduleNote(engineSoundId, note, '+0', 0.9);
     console.log('[LoopLabView] Preview note scheduled:', success);
   };
 
@@ -399,7 +399,7 @@ export default function LoopLabView() {
     }
 
     const engine = audioEngineRef.current;
-    engine.scheduleNote(engineSoundId, note, '+0', 0.7);
+    engine.scheduleNote(engineSoundId, note, '+0', 0.9);
   };
 
   const ensureAudioEngine = async () => {

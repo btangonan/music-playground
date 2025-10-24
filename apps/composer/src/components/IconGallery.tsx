@@ -39,13 +39,15 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
               <div
                 draggable={!isMobile || longPressSound === sound.id}
                 onClick={() => {
-                  // Mobile: tap to select, then tap again to place
                   if (isMobile && longPressSound !== sound.id) {
+                    // Mobile: tap to select, then tap again to place
                     onSelectSound(sound.id);
                     onSelectSoundForPlacement?.(sound.id);
                     onPreviewSound?.(sound.id);
+                  } else if (!isMobile) {
+                    // Desktop: preview sound on click, but no selection (allows pure drag)
+                    onPreviewSound?.(sound.id);
                   }
-                  // Desktop: no click action, just drag
                 }}
                 onTouchStart={(e) => {
                   if (isMobile) {
