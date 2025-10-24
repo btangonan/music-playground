@@ -21,7 +21,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Lead',
     category: 'synth',
     type: 'melodic',
-    volume: -8, // Normalized for master bus dynamics (raised 4dB)
+    volume: -10, // Normalized for master bus dynamics (decreased 2dB - was too loud)
     toneConfig: {
       synthType: 'MonoSynth',
       options: {
@@ -117,7 +117,7 @@ export const ICON_SOUNDS: Record<string, IconSound> = {
     name: 'Kick',
     category: 'drum',
     type: 'rhythmic',
-    volume: -2, // Normalized for master bus dynamics (raised 4dB)
+    volume: -4, // Normalized for master bus dynamics (decreased 2dB - was too loud)
     toneConfig: {
       synthType: 'MembraneSynth',
       options: {
