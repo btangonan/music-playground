@@ -148,34 +148,57 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
         })}
       </div>
 
-      {/* Mobile Play Button - positioned to the right */}
+      {/* Mobile Play Button - positioned on bottom row after Riser */}
       {isMobile && onPlayPause && (
-        <button
-          onClick={onPlayPause}
-          className="bounce-transition hover:scale-105 active:scale-98"
+        <div
           style={{
             position: 'absolute',
             right: '16px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            backgroundColor: '#FFD11A',
-            border: 'none',
-            borderRadius: '12px',
-            width: '56px',
-            height: '56px',
+            bottom: '8px',
+            width: 'calc((100% - 32px - 40px) / 6)', // Match icon width (grid-cols-6 with 2px gap)
+            aspectRatio: '1',
             display: 'flex',
+            flexDirection: 'column',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-            cursor: 'pointer'
+            gap: '4px'
           }}
         >
-          {isPlaying ? (
-            <Square className="w-6 h-6 fill-black stroke-black" />
-          ) : (
-            <Play className="w-6 h-6 fill-black stroke-black" />
-          )}
-        </button>
+          <button
+            onClick={onPlayPause}
+            className="bounce-transition hover:scale-110 active:scale-98"
+            style={{
+              backgroundColor: '#FFD11A',
+              border: 'none',
+              borderRadius: '8px',
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2px',
+              cursor: 'pointer'
+            }}
+          >
+            {isPlaying ? (
+              <Square style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
+            ) : (
+              <Play style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
+            )}
+          </button>
+          <span
+            style={{
+              fontSize: '8px',
+              fontFamily: 'Inter, system-ui, sans-serif',
+              fontWeight: 500,
+              color: 'rgba(0,0,0,0.6)',
+              textAlign: 'center',
+              lineHeight: '1',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Play
+          </span>
+        </div>
       )}
     </div>
   );
