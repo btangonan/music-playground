@@ -93,7 +93,9 @@ export class AudioEngine {
     for (const sound of Object.values(ICON_SOUNDS)) {
       const instrument = this.createInstrument(sound)
       // Connect to HPF if present, otherwise directly to compressor
-      instrument.connect(this.hpf ?? this.compressor)
+      const target = this.hpf ?? this.compressor
+      instrument.connect(target)
+      console.log(`[AudioEngine] Connected ${sound.id} (${instrument.constructor.name}) → ${target.constructor.name}`)
       this.instruments.set(sound.id, instrument)
     }
     console.log('[AudioEngine] Created', this.instruments.size, 'instruments')
@@ -178,12 +180,30 @@ export class AudioEngine {
       console.log(`[PITCH DEBUG] ${soundId}: ${note}, dur=${dur.toFixed(3)}s, vel=${velocity.toFixed(2)}`)
     }
 
+    // AUDIO DEBUG: Log detailed trigger info
+    console.log(`[AudioEngine.scheduleNote] Triggering:`, {
+      soundId,
+      note,
+      time,
+      velocity,
+      duration: dur,
+      instrumentType: instrument.constructor.name,
+      contextState: Tone.context.state,
+      transportState: Tone.Transport.state,
+      masterVolume: this.masterChannel.volume.value
+    })
+
     try {
       if (instrument instanceof Tone.NoiseSynth) {
         instrument.triggerAttackRelease(dur, time, velocity)
       } else {
         instrument.triggerAttackRelease(note, dur, time, velocity)
       }
+
+      // Verify instrument is connected
+      console.log(`[AudioEngine.scheduleNote] Instrument connected to:`,
+        (this.hpf && instrument.context === this.hpf.context) ? 'HPF' : 'Compressor')
+
       return true
     } catch (err) {
       console.error(`Failed to schedule note for ${soundId}:`, err)
