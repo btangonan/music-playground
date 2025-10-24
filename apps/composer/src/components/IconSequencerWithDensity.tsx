@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
 import ChordLabels from './ChordLabels';
-import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH } from './sequencerLayout';
+import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH, getRowHeight } from './sequencerLayout';
 import { useMultiSelection } from '../hooks/useMultiSelection';
 
 interface IconPlacement {
@@ -33,6 +33,12 @@ interface IconSequencerWithDensityProps {
   onOctaveOffsetChange?: (offset: number) => void;
   onChordSelect?: (chord: Chord | null) => void;
   onPresetSelect?: (preset: string) => void;
+  // Mobile interaction props
+  isMobile?: boolean;
+  onGridCellClick?: (bar: number, pitch: number) => void;
+  onIconClick?: (placement: IconPlacement) => void;
+  selectedIconForDeletion?: IconPlacement | null;
+  selectedSoundForPlacement?: string | null;
 }
 
 /**
@@ -47,7 +53,8 @@ function ensurePlacementIds(placements: IconPlacement[]): IconPlacement[] {
 }
 
 // Shared constants from sequencerLayout
-const { COLUMN_WIDTH, ROW_HEIGHT, TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
+// Note: ROW_HEIGHT is now dynamic - use getRowHeight(isMobile) instead
+const { COLUMN_WIDTH, TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
 
 const BARS = 4;
 const BASE_MIDI = 48;
@@ -71,7 +78,10 @@ const BAR_HEIGHT = 12;  // Bar for duration visualization
 const DEBUG = false;
 
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
-  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange, onChordSelect, onPresetSelect } = props;
+  const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange, onChordSelect, onPresetSelect, isMobile, onGridCellClick, onIconClick, selectedIconForDeletion, selectedSoundForPlacement } = props;
+
+  // Responsive row height - 24px on mobile (meets touch target), 10px on desktop
+  const ROW_HEIGHT = getRowHeight(isMobile || false);
 
   const [internalOctaveOffset, setInternalOctaveOffset] = useState(0);
   const octaveOffset = externalOctaveOffset !== undefined ? externalOctaveOffset : internalOctaveOffset;
@@ -641,7 +651,19 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         let densityColor = 'transparent';
         if (chord && isPlayableRow) { const alpha = densityAlpha(pc, chord); const color = chordColors[chord]; const r = parseInt(color.slice(1, 3), 16); const g = parseInt(color.slice(3, 5), 16); const b = parseInt(color.slice(5, 7), 16); densityColor = `rgba(${r}, ${g}, ${b}, ${alpha})`; }
         cells.push(
-          <div key={col} className="grid-background" style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0 }}>
+          <div
+            key={col}
+            className="grid-background"
+            style={{ width: `${COLUMN_WIDTH}px`, height: `${ROW_HEIGHT}px`, position: 'relative', flexShrink: 0, cursor: onGridCellClick ? 'pointer' : 'default' }}
+            onClick={() => {
+              // Handle tap-to-place on mobile
+              if (onGridCellClick && isPlayableRow) {
+                const bar = col * 4; // Convert column (quarter note) to sixteenth notes
+                const pitch = midi;
+                onGridCellClick(bar, pitch);
+              }
+            }}
+          >
             <div style={{ position: 'absolute', inset: 0, backgroundColor: barChordColor, pointerEvents: 'none' }} />
             {isDragging && (<div style={{ position: 'absolute', inset: 0, backgroundColor: densityColor, pointerEvents: 'none' }} />)}
           </div>
@@ -719,6 +741,10 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
             onClick={(e) => {
               e.stopPropagation();
               selection.selectItem(p.id);
+              // Mobile tap-to-select for deletion
+              if (onIconClick && isMobile) {
+                onIconClick(p);
+              }
             }}
             style={{
               position: 'absolute',
@@ -762,6 +788,23 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
                     backgroundColor: 'transparent',
                     pointerEvents: 'none',
                     zIndex: -1
+                  }}
+                />
+              )}
+              {/* Mobile deletion selection - red ring like gallery's blue ring */}
+              {selectedIconForDeletion === p && isMobile && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '-2px',
+                    left: '-2px',
+                    width: '44px',
+                    height: '44px',
+                    borderRadius: '50%',
+                    border: '4px solid #EF4444',
+                    backgroundColor: 'transparent',
+                    pointerEvents: 'none',
+                    zIndex: 10
                   }}
                 />
               )}
@@ -1003,14 +1046,23 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
     <div className="flex flex-row">
       {/* Sequencer grid with scroll-based pitch control */}
       <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
+        {/* Mobile scroll container - max height on mobile, full height on desktop */}
         <div
-          ref={outerWrapperRef}
-          className="relative flex items-center justify-center"
-          style={{ width: `${GRID_TOTAL_WIDTH + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
-          onDragOver={!assignmentMode ? handleDragOver : undefined}
-          onDragLeave={!assignmentMode ? handleDragLeave : undefined}
-          onDrop={!assignmentMode ? handleDrop : undefined}
-          onDragEnd={!assignmentMode ? handleDragEnd : undefined}
+          className={isMobile ? "overflow-y-auto w-full" : ""}
+          style={isMobile ? {
+            maxHeight: '500px',
+            WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin'
+          } : {}}
+        >
+          <div
+            ref={outerWrapperRef}
+            className="relative flex items-center justify-center"
+            style={{ width: `${GRID_TOTAL_WIDTH + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+            onDragOver={!assignmentMode ? handleDragOver : undefined}
+            onDragLeave={!assignmentMode ? handleDragLeave : undefined}
+            onDrop={!assignmentMode ? handleDrop : undefined}
+            onDragEnd={!assignmentMode ? handleDragEnd : undefined}
           onClick={(e) => {
             // Clear selection when clicking anywhere except on icons
             if (!assignmentMode) {
@@ -1126,6 +1178,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
               </>
             )}
           </div>
+        </div>
+        {/* Close mobile scroll container */}
         </div>
         <div style={{ width: `${GRID_TOTAL_WIDTH}px`, paddingLeft: `${GRID_BORDER_WIDTH}px` }}>
           <ChordLabels

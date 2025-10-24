@@ -69,23 +69,23 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
     );
   }
 
-  // Horizontal layout (original)
+  // Horizontal layout (original) - now responsive
   return (
     <div
       className="bg-white"
-      style={{ height: '32px', padding: '0 8px' }}
+      style={{ minHeight: '32px', padding: '8px' }}
     >
-      <div className="flex items-center justify-between h-full gap-8">
+      <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-3 sm:gap-8">
         {/* Left: Label + Chord Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
           <span
-            className="text-[rgba(0,0,0,0.55)]"
+            className="text-[rgba(0,0,0,0.55)] w-full sm:w-auto text-center sm:text-left"
             style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px', lineHeight: '16px' }}
           >
             CHORDS:
           </span>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-1">
             {CHORDS.map((chord) => {
               const isSelected = selectedChord === chord;
               const color = chordColors[chord];
@@ -104,8 +104,8 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
                   onClick={() => handleChordClick(chord)}
                   className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
                   style={{
-                    width: '32px',
-                    height: '24px',
+                    minWidth: '44px',
+                    minHeight: '44px',
                     borderRadius: '8px',
                     fontFamily: 'Inter',
                     fontSize: '11px',
@@ -133,23 +133,24 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
         </div>
 
         {/* Right: Preset Label + Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
           <span
-            className="text-[rgba(0,0,0,0.55)]"
+            className="text-[rgba(0,0,0,0.55)] w-full sm:w-auto text-center sm:text-left"
             style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '12px', lineHeight: '16px' }}
           >
             PRESETS:
           </span>
 
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center justify-center gap-1">
             {PRESETS.map((preset) => (
               <button
                 key={preset}
                 onClick={() => onPresetSelect(preset)}
                 className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
                 style={{
-                  width: '64px',
-                  height: '24px',
+                  minWidth: '64px',
+                  minHeight: '44px',
+                  padding: '0 8px',
                   borderRadius: '8px',
                   fontFamily: 'Inter',
                   fontSize: '12px',

@@ -50,15 +50,15 @@ export default function TopBar({
     }
   };
   return (
-    <div 
+    <div
       className="bg-white border-2 border-black rounded-2xl p-4 mb-4"
-      style={{ 
-        height: '60px'
+      style={{
+        minHeight: '60px'
       }}
     >
-      <div className="flex items-center justify-between h-full w-full">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0 h-full w-full">
         {/* Left Side - Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
           <button
             onClick={onPlayPause}
             className="
@@ -120,7 +120,7 @@ export default function TopBar({
         </div>
 
         {/* Right Side - Key, BPM & Settings */}
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
           {/* Key Selector */}
           <KeySelector
             selectedKey={selectedKey}
@@ -171,11 +171,12 @@ export default function TopBar({
           <button
             onClick={handleClearClick}
             className="
-              bg-white border border-[rgba(0,0,0,0.1)] p-2.5 rounded-xl
+              bg-white border border-[rgba(0,0,0,0.1)] rounded-xl
               flex items-center justify-center
               bounce-transition hover:scale-105 active:scale-98
               hover:bg-[rgba(0,0,0,0.05)]
             "
+            style={{ minWidth: '44px', minHeight: '44px' }}
             title="Clear All"
           >
             <Trash2 className="w-4 h-4" />
@@ -183,11 +184,12 @@ export default function TopBar({
 
           <button
             className="
-              bg-white border border-[rgba(0,0,0,0.1)] p-2.5 rounded-xl
+              bg-white border border-[rgba(0,0,0,0.1)] rounded-xl
               flex items-center justify-center
               bounce-transition hover:scale-105 active:scale-98
               hover:bg-[rgba(0,0,0,0.05)]
             "
+            style={{ minWidth: '44px', minHeight: '44px' }}
             title="Settings"
           >
             <Settings className="w-4 h-4" />
