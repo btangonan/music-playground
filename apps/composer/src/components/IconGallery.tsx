@@ -148,56 +148,33 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
         })}
       </div>
 
-      {/* Mobile Play Button - positioned on bottom row after Riser, 2x width */}
+      {/* Mobile Play Button - positioned on bottom row after Riser, 2x width, no label */}
       {isMobile && onPlayPause && (
-        <div
+        <button
+          onClick={onPlayPause}
+          className="bounce-transition hover:scale-110 active:scale-98"
           style={{
             position: 'absolute',
             right: '16px',
-            bottom: '8px',
-            width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap (8px = gap-2)
+            bottom: '4px', // Moved down from 8px
+            width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap
+            aspectRatio: '2 / 1',
+            backgroundColor: '#FFD11A',
+            border: 'none',
+            borderRadius: '8px',
             display: 'flex',
-            flexDirection: 'column',
             alignItems: 'center',
-            gap: '4px'
+            justifyContent: 'center',
+            padding: '2px',
+            cursor: 'pointer'
           }}
         >
-          <button
-            onClick={onPlayPause}
-            className="bounce-transition hover:scale-110 active:scale-98"
-            style={{
-              backgroundColor: '#FFD11A',
-              border: 'none',
-              borderRadius: '8px',
-              width: '100%',
-              aspectRatio: '2 / 1', // 2:1 width to height ratio for rectangular button
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2px',
-              cursor: 'pointer'
-            }}
-          >
-            {isPlaying ? (
-              <Square style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
-            ) : (
-              <Play style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
-            )}
-          </button>
-          <span
-            style={{
-              fontSize: '8px',
-              fontFamily: 'Inter, system-ui, sans-serif',
-              fontWeight: 500,
-              color: 'rgba(0,0,0,0.6)',
-              textAlign: 'center',
-              lineHeight: '1',
-              whiteSpace: 'nowrap'
-            }}
-          >
-            Play
-          </span>
-        </div>
+          {isPlaying ? (
+            <Square style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
+          ) : (
+            <Play style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
+          )}
+        </button>
       )}
     </div>
   );
