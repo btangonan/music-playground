@@ -26,7 +26,9 @@ COPY shared ./shared
 
 # Copy API package
 COPY apps/api/package.json ./apps/api/
-COPY apps/api/dist ./apps/api/dist
+
+# Copy built dist from builder stage
+COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
 # Install production dependencies only
 RUN corepack enable && corepack prepare pnpm@latest --activate
