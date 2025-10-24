@@ -1061,25 +1061,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div className="flex flex-row">
-      {/* DEBUG: Visual indicator of responsive state */}
-      <div style={{
-        position: 'fixed',
-        top: '60px',
-        right: '10px',
-        padding: '8px 12px',
-        background: isMobile ? '#22c55e' : '#ef4444',
-        color: 'white',
-        borderRadius: '8px',
-        fontSize: '11px',
-        fontFamily: 'monospace',
-        zIndex: 9999,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-      }}>
-        {isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | {COLUMN_WIDTH}px cols | {gridTotalWidth}px grid
-        <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>
-          v13-CENTERED | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
-        </div>
-      </div>
       {/* Sequencer grid with scroll-based pitch control */}
       <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
         {/* Mobile scroll container - max height on mobile, full height on desktop */}
