@@ -162,21 +162,31 @@ export default function LoopLabView() {
 
     try {
       const loopData = serializeLoop();
-      const loopId = currentLoopId || generateUUID();
 
-      // Save to localStorage (bulletproof, works everywhere)
-      const storageKey = `loop_${loopId}`;
-      localStorage.setItem(storageKey, JSON.stringify(loopData));
+      // Save to API backend (works remotely!)
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_URL}/api/loops`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(loopData)
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const saved = await response.json();
+      const loopId = saved.id;
 
       // Create shareable URL with loop ID
       const shareUrl = new URL(window.location.href);
-      shareUrl.searchParams.set('loop', loopId);
+      shareUrl.searchParams.set('loopId', loopId);
       const shareLink = shareUrl.toString();
 
       // Auto-copy to clipboard
       try {
         await navigator.clipboard.writeText(shareLink);
-        showToast('✓ Saved! Link copied - share with anyone', 'success');
+        showToast('✓ Saved! Link copied - works anywhere', 'success');
       } catch {
         showToast('✓ Saved! Copy URL to share', 'success');
       }
@@ -188,7 +198,7 @@ export default function LoopLabView() {
       // Update URL with loop ID
       window.history.replaceState(null, '', shareUrl.toString());
 
-      console.log('Loop saved to localStorage:', loopId);
+      console.log('Loop saved to API:', loopId);
     } catch (error: any) {
       const message = error?.message || 'Save failed. Please try again.';
       setSaveError(message);
@@ -527,23 +537,23 @@ export default function LoopLabView() {
   useEffect(() => { return () => { if (audioEngineRef.current) { audioEngineRef.current.stop(); audioEngineRef.current.dispose(); } }; }, []);
 
   useEffect(() => {
-    const loadLoopFromUrl = () => {
+    const loadLoopFromUrl = async () => {
       const url = new URL(window.location.href);
-      const loopId = url.searchParams.get('loop');
+      const loopId = url.searchParams.get('loopId');
       if (!loopId) return;
 
       try {
-        const storageKey = `loop_${loopId}`;
-        const stored = localStorage.getItem(storageKey);
-        if (stored) {
-          const loop = JSON.parse(stored);
-          deserializeLoop(loop);
-          console.log('Loop loaded from localStorage:', loopId);
-          showToast(`Loaded loop: ${loop.name}`, 'success');
-        } else {
-          console.warn('Loop not found in localStorage:', loopId);
-          showToast('Loop not found - creating new', 'info');
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const response = await fetch(`${API_URL}/api/loops/${loopId}`);
+
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
         }
+
+        const loop = await response.json();
+        deserializeLoop(loop);
+        console.log('Loop loaded from API:', loopId);
+        showToast(`Loaded loop: ${loop.name}`, 'success');
       } catch (error) {
         console.error('Failed to load loop:', error);
         showToast('Failed to load loop', 'error');
