@@ -13,7 +13,7 @@
 
 export const SEQUENCER_LAYOUT = {
   COLUMN_WIDTH: 48,       // Width of one quarter note column on desktop (px)
-  COLUMN_WIDTH_MOBILE: 19, // Width of one quarter note column on mobile (px) - 19×16=304 + 4px borders + 8px padding = 316px (fits 320px)
+  COLUMN_WIDTH_MOBILE: 18, // Width of one quarter note column on mobile (px) - 18×16=288 + 4px borders = 292px (fits 320px with margin)
   ROW_HEIGHT: 10,         // Height of one semitone row on desktop (px)
   ROW_HEIGHT_MOBILE: 24,  // Height of one semitone row on mobile (px) - meets 44px touch target with icon
   TIME_STEPS: 16,         // 16 quarter notes = 4 bars
