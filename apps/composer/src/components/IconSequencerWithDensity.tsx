@@ -89,6 +89,16 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
   const gridWidth = COLUMN_WIDTH * TIME_STEPS;
   const gridTotalWidth = gridWidth + 2 * GRID_BORDER_WIDTH;
 
+  // DEBUG: Log responsive dimensions on every render
+  console.log('[IconSequencer] Responsive dimensions:', {
+    isMobile,
+    COLUMN_WIDTH,
+    ROW_HEIGHT,
+    gridWidth,
+    gridTotalWidth,
+    windowWidth: typeof window !== 'undefined' ? window.innerWidth : 'SSR'
+  });
+
   const [internalOctaveOffset, setInternalOctaveOffset] = useState(0);
   const octaveOffset = externalOctaveOffset !== undefined ? externalOctaveOffset : internalOctaveOffset;
   const setOctaveOffset = onOctaveOffsetChange || setInternalOctaveOffset;
@@ -1050,6 +1060,25 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
 
   return (
     <div className="flex flex-row">
+      {/* DEBUG: Visual indicator of responsive state */}
+      <div style={{
+        position: 'fixed',
+        top: '60px',
+        right: '10px',
+        padding: '8px 12px',
+        background: isMobile ? '#22c55e' : '#ef4444',
+        color: 'white',
+        borderRadius: '8px',
+        fontSize: '11px',
+        fontFamily: 'monospace',
+        zIndex: 9999,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+      }}>
+        {isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | {COLUMN_WIDTH}px cols | {gridTotalWidth}px grid
+        <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>
+          v2-FIX | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
+        </div>
+      </div>
       {/* Sequencer grid with scroll-based pitch control */}
       <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
         {/* Mobile scroll container - max height on mobile, full height on desktop */}
@@ -1088,7 +1117,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           <div
             ref={sequencerRef}
             className={`relative border-2 border-black rounded-xl ${marquee ? 'overflow-visible' : 'overflow-hidden'}`}
-            style={{ width: `${COLUMN_WIDTH * TIME_STEPS}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0, outline: DEBUG ? '2px solid blue' : 'none' }}
+            style={{ width: `${gridWidth}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + ROW_HEIGHT + 10}px`, userSelect: 'none', flexShrink: 0, outline: DEBUG ? '2px solid blue' : 'none' }}
             onMouseDown={(e) => {
               // Start marquee if clicking on grid background
               if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.grid-background')) {
@@ -1191,6 +1220,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           <ChordLabels
             barChords={barChords}
             gridBorderWidth={GRID_BORDER_WIDTH}
+            gridWidth={gridWidth}
             debug={DEBUG}
           />
         </div>
