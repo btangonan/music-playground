@@ -610,16 +610,7 @@ export default function LoopLabView() {
         <div>
           <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} isMobile={isMobile} />
 
-        {/* Share Button */}
-        {currentLoopId && (
-          <div className="flex justify-end mb-2">
-            <ShareButton loop={{
-              ...serializeLoop(),
-              id: currentLoopId,
-              updatedAt: lastSaved?.toISOString() || new Date().toISOString()
-            }} />
-          </div>
-        )}
+        {/* Share Button - Disabled: localStorage links work same-device only */}
 
         <div className="bg-white border-2 border-black rounded-2xl overflow-hidden">
           {/* Chord and Preset buttons row */}
