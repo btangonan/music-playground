@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
 import ChordLabels from './ChordLabels';
-import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH, getRowHeight, getColumnWidth } from './sequencerLayout';
+import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH, getRowHeight } from './sequencerLayout';
 import { useMultiSelection } from '../hooks/useMultiSelection';
 
 interface IconPlacement {
@@ -53,15 +53,19 @@ function ensurePlacementIds(placements: IconPlacement[]): IconPlacement[] {
 }
 
 // Shared constants from sequencerLayout
-// Note: ROW_HEIGHT and COLUMN_WIDTH are now dynamic - use getters
-const { TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
+// Note: ROW_HEIGHT is dynamic - use getRowHeight(isMobile)
+const { COLUMN_WIDTH, TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
 
 const BARS = 4;
 const BASE_MIDI = 48;
+
+const EIGHTH_WIDTH = COLUMN_WIDTH / 2;  // 24
+const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4; // 12
 const EPS = 0.0001;
 
 // Canonical 1/16 backbone
 const SNAP_DIVISOR = { '1/4': 4, '1/8': 2, '1/16': 1 } as const;
+const centerXFromBar = (bar: number) => bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2; // 12*bar + 6
 
 // Unified icon box and scale for placed + ghost
 const ICON_BOX = 40;
