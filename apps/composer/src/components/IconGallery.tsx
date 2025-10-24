@@ -148,7 +148,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
         })}
       </div>
 
-      {/* Mobile Play Button - matches one icon cell height exactly */}
+      {/* Mobile Play Button - matches one icon cell height */}
       {isMobile && onPlayPause && (
         <button
           onClick={onPlayPause}
@@ -158,7 +158,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
             right: '16px',
             bottom: '8px',
             width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap
-            height: 'calc(((100% - 32px - 40px) / 6) + 4px + 8px)', // icon width (aspectRatio 1) + gap-1 + label
+            height: 'calc(((100% - 32px - 40px) / 6) + 4px + 12px)', // icon width + gap-1 (4px) + label space (12px for padding)
             backgroundColor: '#FFD11A',
             border: 'none',
             borderRadius: '8px',
