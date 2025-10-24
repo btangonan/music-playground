@@ -1076,7 +1076,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       }}>
         {isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | {COLUMN_WIDTH}px cols | {gridTotalWidth}px grid
         <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>
-          v5-PARENT-FIX | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
+          v6-WIDTH-FIX | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
         </div>
       </div>
       {/* Sequencer grid with scroll-based pitch control */}
