@@ -60,7 +60,6 @@ export class AudioEngine {
     // Create master bus chain with corrected signal flow
     // Signal flow: Instrument → HPF → Compressor → Limiter → Master Channel → Destination
     console.log('[AudioEngine] Creating master bus chain...')
-    this.masterChannel = new Tone.Channel(-6).toDestination()
 
     // Optional: gentle HPF at 32 Hz to stabilize compressor against sub-bass energy
     this.hpf = new Tone.Filter({ type: 'highpass', frequency: 32, Q: 0.5 })
@@ -78,11 +77,16 @@ export class AudioEngine {
     // Limiter: brick-wall protection at -1.5 dB to prevent intersample peaks
     this.limiter = new Tone.Limiter(-1.5)
 
-    // Wire master bus chain in correct order
+    // Master channel with volume control
+    this.masterChannel = new Tone.Channel(-6)
+
+    // Wire master bus chain in correct order and connect to destination at the END
     if (this.hpf) this.hpf.connect(this.compressor)
     this.compressor.connect(this.limiter)
     this.limiter.connect(this.masterChannel)
-    console.log('[AudioEngine] Master bus chain created')
+    this.masterChannel.toDestination()  // CRITICAL: Connect to destination at the end!
+
+    console.log('[AudioEngine] Master bus chain created and connected to destination')
 
     // Create all instruments and route through master bus
     console.log('[AudioEngine] Creating instruments...')
