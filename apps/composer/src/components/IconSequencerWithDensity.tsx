@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { SOUND_ICONS } from './SoundIcons';
 import { type Chord, densityAlpha, midiToPitchClass, chordColors } from './chordData';
 import ChordLabels from './ChordLabels';
-import { SEQUENCER_LAYOUT, GRID_WIDTH, GRID_TOTAL_WIDTH, getRowHeight } from './sequencerLayout';
+import { SEQUENCER_LAYOUT, getRowHeight, getColumnWidth } from './sequencerLayout';
 import { useMultiSelection } from '../hooks/useMultiSelection';
 
 interface IconPlacement {
@@ -53,19 +53,15 @@ function ensurePlacementIds(placements: IconPlacement[]): IconPlacement[] {
 }
 
 // Shared constants from sequencerLayout
-// Note: ROW_HEIGHT is dynamic - use getRowHeight(isMobile)
-const { COLUMN_WIDTH, TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
+// Note: ROW_HEIGHT and COLUMN_WIDTH are dynamic - use getRowHeight(isMobile) and getColumnWidth(isMobile)
+const { TIME_STEPS, STEPS_PER_BAR, TOTAL_SEMITONES, WRAPPER_PADDING, GRID_BORDER_WIDTH } = SEQUENCER_LAYOUT;
 
 const BARS = 4;
 const BASE_MIDI = 48;
-
-const EIGHTH_WIDTH = COLUMN_WIDTH / 2;  // 24
-const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4; // 12
 const EPS = 0.0001;
 
 // Canonical 1/16 backbone
 const SNAP_DIVISOR = { '1/4': 4, '1/8': 2, '1/16': 1 } as const;
-const centerXFromBar = (bar: number) => bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2; // 12*bar + 6
 
 // Unified icon box and scale for placed + ghost
 const ICON_BOX = 40;
@@ -80,8 +76,18 @@ const DEBUG = false;
 export default function IconSequencerWithDensity(props: IconSequencerWithDensityProps) {
   const { selectedSound, selectedKey, draggingSound, barChords, assignmentMode, onBarChordAssign, currentStep, isPlaying, placements: externalPlacements, onPlacementsChange, onPreviewNote, resolution, quantizeBar, octaveOffset: externalOctaveOffset, onOctaveOffsetChange, onChordSelect, onPresetSelect, isMobile, onGridCellClick, onIconClick, selectedIconForDeletion, selectedSoundForPlacement } = props;
 
-  // Responsive row height - 24px on mobile (meets touch target), 10px on desktop
+  // Responsive dimensions - mobile uses smaller cells to fit screen width
   const ROW_HEIGHT = getRowHeight(isMobile || false);
+  const COLUMN_WIDTH = getColumnWidth(isMobile || false);
+
+  // Derived widths based on responsive COLUMN_WIDTH
+  const EIGHTH_WIDTH = COLUMN_WIDTH / 2;
+  const SIXTEENTH_WIDTH = COLUMN_WIDTH / 4;
+  const centerXFromBar = (bar: number) => bar * SIXTEENTH_WIDTH + SIXTEENTH_WIDTH / 2;
+
+  // Responsive grid dimensions
+  const gridWidth = COLUMN_WIDTH * TIME_STEPS;
+  const gridTotalWidth = gridWidth + 2 * GRID_BORDER_WIDTH;
 
   const [internalOctaveOffset, setInternalOctaveOffset] = useState(0);
   const octaveOffset = externalOctaveOffset !== undefined ? externalOctaveOffset : internalOctaveOffset;
@@ -1058,7 +1064,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
           <div
             ref={outerWrapperRef}
             className="relative flex items-center justify-center"
-            style={{ width: `${GRID_TOTAL_WIDTH + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
+            style={{ width: `${gridTotalWidth + WRAPPER_PADDING * 2}px`, height: `${ROW_HEIGHT * TOTAL_SEMITONES + WRAPPER_PADDING * 2 + ROW_HEIGHT + 10}px` }}
             onDragOver={!assignmentMode ? handleDragOver : undefined}
             onDragLeave={!assignmentMode ? handleDragLeave : undefined}
             onDrop={!assignmentMode ? handleDrop : undefined}
@@ -1181,7 +1187,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         </div>
         {/* Close mobile scroll container */}
         </div>
-        <div style={{ width: `${GRID_TOTAL_WIDTH}px`, paddingLeft: `${GRID_BORDER_WIDTH}px` }}>
+        <div style={{ width: `${gridTotalWidth}px`, paddingLeft: `${GRID_BORDER_WIDTH}px` }}>
           <ChordLabels
             barChords={barChords}
             gridBorderWidth={GRID_BORDER_WIDTH}
