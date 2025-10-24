@@ -71,10 +71,11 @@ export default function TopBar({
 
           <button
             onClick={onSave}
-            className="bg-white border-2 border-black rounded-xl flex items-center justify-center bounce-transition hover:scale-105 active:scale-98"
+            className="bg-[#4CAF50] border-2 border-black rounded-xl flex items-center justify-center bounce-transition hover:scale-105 active:scale-98"
             style={{ minWidth: '56px', minHeight: '56px' }}
+            title="Save and get shareable link"
           >
-            <Save className="w-6 h-6" />
+            <Save className="w-6 h-6 text-white" />
           </button>
 
           <button
@@ -195,15 +196,16 @@ export default function TopBar({
           <button
             onClick={onSave}
             className="
-              bg-white border border-[rgba(0,0,0,0.1)] px-3 py-2 rounded-xl
+              bg-[#4CAF50] text-white px-3 py-2 rounded-xl
               flex items-center gap-2
               bounce-transition hover:scale-105 active:scale-98
-              hover:bg-[rgba(0,0,0,0.05)]
+              hover:bg-[#45a049]
             "
             style={{ fontFamily: 'Inter', fontWeight: 700, fontSize: '14px', whiteSpace: 'nowrap' }}
+            title="Save and get shareable link"
           >
             <Save className="w-4 h-4" />
-            <span>Save to Pad</span>
+            <span>Save & Share</span>
           </button>
 
           {/* Import MIDI Button */}

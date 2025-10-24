@@ -163,32 +163,34 @@ export default function LoopLabView() {
     try {
       const loopData = serializeLoop();
 
-      let savedLoop: Loop;
-      if (currentLoopId) {
-        // Update existing loop
-        savedLoop = await loopsApi.updateLoop(currentLoopId, {
-          ...loopData,
-          updatedAt: new Date().toISOString(),
-        });
-      } else {
-        // Create new loop - backend generates id and updatedAt
-        savedLoop = await loopsApi.createLoop(loopData);
-        setCurrentLoopId(savedLoop.id);
+      // Use GitHub Gist for bulletproof saving
+      const { shareLoop, generateAppShareUrl } = await import('../services/sharing');
+      const result = await shareLoop(loopData);
+      const shareUrl = generateAppShareUrl(result.gistId);
 
-        // Update URL with loopId
-        const url = new URL(window.location.href);
-        url.searchParams.set('loopId', savedLoop.id);
-        window.history.replaceState(null, '', url.toString());
+      // Auto-copy to clipboard
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        showToast('✓ Saved! Link copied to clipboard', 'success');
+      } catch {
+        showToast('✓ Saved! Share link ready', 'success');
       }
 
+      // Update state
+      setCurrentLoopId(result.gistId);
       setLastSaved(new Date());
-      console.log('Loop saved successfully:', savedLoop.id);
-      showToast('Loop saved successfully!', 'success');
-    } catch (error) {
-      const { message } = formatApiError(error);
+
+      // Update URL with gist ID for easy sharing
+      const url = new URL(window.location.href);
+      url.searchParams.set('gist', result.gistId);
+      window.history.replaceState(null, '', url.toString());
+
+      console.log('Loop saved to Gist:', result.gistId);
+    } catch (error: any) {
+      const message = error?.message || 'Save failed. Please try again.';
       setSaveError(message);
       console.error('Save failed:', message);
-      showToast(message, 'error');
+      showToast(`Save failed: ${message}`, 'error');
     } finally {
       setIsSaving(false);
     }
