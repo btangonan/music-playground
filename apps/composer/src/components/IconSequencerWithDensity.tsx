@@ -752,7 +752,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         >
           {/* Draggable wrapper - 40x40px centered on grid cell */}
           <div
-            draggable
+            draggable={!isMobile}
             onDragStart={(e) => handlePlacementDragStart(e, index)}
             onDoubleClick={(e) => handleIconDoubleClick(e, index)}
             onClick={(e) => {
@@ -805,23 +805,6 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
                     backgroundColor: 'transparent',
                     pointerEvents: 'none',
                     zIndex: -1
-                  }}
-                />
-              )}
-              {/* Mobile deletion selection - red ring like gallery's blue ring */}
-              {selectedIconForDeletion === p && isMobile && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-2px',
-                    left: '-2px',
-                    width: '44px',
-                    height: '44px',
-                    borderRadius: '50%',
-                    border: '4px solid #EF4444',
-                    backgroundColor: 'transparent',
-                    pointerEvents: 'none',
-                    zIndex: 10
                   }}
                 />
               )}
