@@ -148,7 +148,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
         })}
       </div>
 
-      {/* Mobile Play Button - spans full icon cell height (top of icon to bottom of label) */}
+      {/* Mobile Play Button - spans height of bottom row only */}
       {isMobile && onPlayPause && (
         <button
           onClick={onPlayPause}
@@ -156,8 +156,8 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
           style={{
             position: 'absolute',
             right: '16px',
-            top: '8px', // Align with top of icon cells
-            bottom: '8px', // Align with bottom padding
+            top: 'calc(50% + 4px)', // Start of second row (50% + half of gap-2)
+            bottom: '8px', // Bottom padding
             width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap
             backgroundColor: '#FFD11A',
             border: 'none',
