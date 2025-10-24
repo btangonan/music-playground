@@ -18,6 +18,7 @@ interface TopBarProps {
   onMidiUpload: (placements: any[], metadata: any) => void;
   onShowMidiModal: () => void;
   ensureAudioEngine: () => Promise<any>;
+  isMobile?: boolean;
 }
 
 export default function TopBar({
@@ -34,7 +35,8 @@ export default function TopBar({
   midiMetadata,
   onMidiUpload,
   onShowMidiModal,
-  ensureAudioEngine
+  ensureAudioEngine,
+  isMobile = false
 }: TopBarProps) {
   const midiUploaderRef = useRef<{ triggerUpload: () => void }>(null);
 
@@ -49,6 +51,118 @@ export default function TopBar({
       onClearAll();
     }
   };
+  // Mobile: compact two-row layout
+  if (isMobile) {
+    return (
+      <div className="w-full px-4 mb-3">
+        {/* Row 1: Action buttons (Play, Save, Import) */}
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <button
+            onClick={onPlayPause}
+            className="bg-[#FFD11A] border-2 border-black rounded-xl flex items-center justify-center bounce-transition hover:scale-105 active:scale-98"
+            style={{ minWidth: '56px', minHeight: '56px' }}
+          >
+            {isPlaying ? (
+              <Square className="w-6 h-6 fill-black stroke-black" />
+            ) : (
+              <Play className="w-6 h-6 fill-black stroke-black" />
+            )}
+          </button>
+
+          <button
+            onClick={onSave}
+            className="bg-white border-2 border-black rounded-xl flex items-center justify-center bounce-transition hover:scale-105 active:scale-98"
+            style={{ minWidth: '56px', minHeight: '56px' }}
+          >
+            <Save className="w-6 h-6" />
+          </button>
+
+          <button
+            onClick={handleImportClick}
+            className="bg-white border-2 border-black rounded-xl flex items-center justify-center bounce-transition hover:scale-105 active:scale-98"
+            style={{ minWidth: '56px', minHeight: '56px' }}
+          >
+            <Upload className="w-6 h-6" />
+          </button>
+
+          {/* Hidden MidiUploader */}
+          <div style={{ display: 'none' }}>
+            <MidiUploader
+              compact={true}
+              ensureAudioEngine={ensureAudioEngine}
+              onPlacements={onMidiUpload}
+            />
+          </div>
+        </div>
+
+        {/* Row 2: Controls (Key, Resolution, BPM) */}
+        <div className="flex items-center justify-center gap-0.5">
+          {/* Key Selector - Mobile Inline Version */}
+          <div className="flex items-center gap-0.5 bg-white border-2 border-black rounded-lg px-1" style={{ minHeight: '32px' }}>
+            <span
+              className="text-[rgba(0,0,0,0.55)]"
+              style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '11px' }}
+            >
+              KEY:
+            </span>
+            <select
+              value={selectedKey}
+              onChange={(e) => onKeyChange(e.target.value)}
+              className="bg-transparent outline-none border-none text-center"
+              style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '11px', width: '26px' }}
+            >
+              {['C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'].map((key) => (
+                <option key={key} value={key}>{key}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Resolution Toggle */}
+          <div className="flex items-center gap-0.5">
+            {(['1/4', '1/8', '1/16'] as const).map((res) => (
+              <button
+                key={res}
+                onClick={() => onResolutionChange(res)}
+                className={`
+                  px-1 py-1 rounded-lg text-xs border-2 border-black
+                  transition-all duration-150
+                  ${resolution === res
+                    ? 'bg-[#FFD11A] text-black font-bold'
+                    : 'bg-white text-[rgba(0,0,0,0.55)]'
+                  }
+                `}
+                style={{ fontFamily: 'Inter', fontWeight: resolution === res ? 700 : 500, fontSize: '11px', minHeight: '32px', minWidth: '36px' }}
+              >
+                {res}
+              </button>
+            ))}
+          </div>
+
+          {/* BPM Control */}
+          <div className="flex items-center gap-0.5 bg-white border-2 border-black rounded-lg px-1.5" style={{ minHeight: '32px' }}>
+            <span
+              className="text-[rgba(0,0,0,0.55)]"
+              style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '11px' }}
+            >
+              BPM:
+            </span>
+            <input
+              type="number"
+              value={Math.round(bpm)}
+              onChange={(e) => onBpmChange(parseInt(e.target.value) || 120)}
+              className="w-10 text-center bg-transparent outline-none"
+              style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '11px' }}
+              min="60"
+              max="200"
+              step="1"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop: full layout with text labels
   return (
     <div
       className="bg-white border-2 border-black rounded-2xl p-4 mb-4"
@@ -149,7 +263,7 @@ export default function TopBar({
           </div>
 
           <div className="flex items-center gap-2">
-            <span 
+            <span
               className="text-[rgba(0,0,0,0.55)]"
               style={{ fontFamily: 'Inter', fontWeight: 500, fontSize: '14px' }}
             >

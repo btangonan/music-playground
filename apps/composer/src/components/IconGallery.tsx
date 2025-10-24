@@ -1,5 +1,4 @@
 import { useState, useRef } from 'react';
-import { Play, Square } from 'lucide-react';
 import { SOUND_ICONS } from './SoundIcons';
 
 interface IconGalleryProps {
@@ -10,11 +9,9 @@ interface IconGalleryProps {
   onDragEnd?: () => void;
   onPreviewSound?: (soundId: string) => void;
   isMobile?: boolean;
-  isPlaying?: boolean;
-  onPlayPause?: () => void;
 }
 
-export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile, isPlaying, onPlayPause }: IconGalleryProps) {
+export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile }: IconGalleryProps) {
   const [longPressSound, setLongPressSound] = useState<string | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   return (
@@ -147,35 +144,6 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
           );
         })}
       </div>
-
-      {/* Mobile Play Button - matches one icon cell height */}
-      {isMobile && onPlayPause && (
-        <button
-          onClick={onPlayPause}
-          className="bounce-transition hover:scale-110 active:scale-98"
-          style={{
-            position: 'absolute',
-            right: '16px',
-            bottom: '8px',
-            width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap
-            height: 'calc(((100% - 32px - 40px) / 6) + 4px + 12px)', // icon width + gap-1 (4px) + label space (12px for padding)
-            backgroundColor: '#FFD11A',
-            border: 'none',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '2px',
-            cursor: 'pointer'
-          }}
-        >
-          {isPlaying ? (
-            <Square style={{ width: '24px', height: '24px' }} className="fill-black stroke-black" />
-          ) : (
-            <Play style={{ width: '24px', height: '24px' }} className="fill-black stroke-black" />
-          )}
-        </button>
-      )}
     </div>
   );
 }

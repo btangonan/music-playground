@@ -79,17 +79,19 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
       <div className={`flex items-center ${isMobile ? 'gap-1.5' : 'gap-3'} min-w-max`}>
         {/* Left: Label + Chord Buttons */}
         <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} shrink-0`}>
-          <span
-            className="text-[rgba(0,0,0,0.55)]"
-            style={{
-              fontFamily: 'Inter',
-              fontWeight: 500,
-              fontSize: isMobile ? '9px' : '12px',
-              lineHeight: isMobile ? '12px' : '16px'
-            }}
-          >
-            CHORDS:
-          </span>
+          {!isMobile && (
+            <span
+              className="text-[rgba(0,0,0,0.55)]"
+              style={{
+                fontFamily: 'Inter',
+                fontWeight: 500,
+                fontSize: '12px',
+                lineHeight: '16px'
+              }}
+            >
+              CHORDS:
+            </span>
+          )}
 
           <div className={`flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'}`}>
             {CHORDS.map((chord) => {
@@ -138,49 +140,51 @@ export default function ChordPalette({ selectedChord, onChordSelect, onPresetSel
           </div>
         </div>
 
-        {/* Right: Preset Label + Buttons */}
-        <div className={`flex items-center ${isMobile ? 'gap-1' : 'gap-2'} shrink-0`}>
-          <span
-            className="text-[rgba(0,0,0,0.55)]"
-            style={{
-              fontFamily: 'Inter',
-              fontWeight: 500,
-              fontSize: isMobile ? '9px' : '12px',
-              lineHeight: isMobile ? '12px' : '16px'
-            }}
-          >
-            PRESETS:
-          </span>
+        {/* Right: Preset Label + Buttons - Desktop Only */}
+        {!isMobile && (
+          <div className="flex items-center gap-2 shrink-0">
+            <span
+              className="text-[rgba(0,0,0,0.55)]"
+              style={{
+                fontFamily: 'Inter',
+                fontWeight: 500,
+                fontSize: '12px',
+                lineHeight: '16px'
+              }}
+            >
+              PRESETS:
+            </span>
 
-          <div className={`flex items-center ${isMobile ? 'gap-0.5' : 'gap-1'}`}>
-            {PRESETS.map((preset) => (
-              <button
-                key={preset}
-                onClick={() => onPresetSelect(preset)}
-                className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
-                style={{
-                  minWidth: isMobile ? '36px' : '56px',
-                  minHeight: isMobile ? '22px' : '36px',
-                  padding: isMobile ? '0 4px' : '0 8px',
-                  borderRadius: isMobile ? '6px' : '8px',
-                  fontFamily: 'Inter',
-                  fontSize: isMobile ? '8px' : '11px',
-                  fontWeight: 500,
-                  backgroundColor: 'white',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                }}
-              >
-                {preset}
-              </button>
-            ))}
+            <div className="flex items-center gap-1">
+              {PRESETS.map((preset) => (
+                <button
+                  key={preset}
+                  onClick={() => onPresetSelect(preset)}
+                  className="flex items-center justify-center border border-[rgba(0,0,0,0.1)] transition-all duration-200"
+                  style={{
+                    minWidth: '56px',
+                    minHeight: '36px',
+                    padding: '0 8px',
+                    borderRadius: '8px',
+                    fontFamily: 'Inter',
+                    fontSize: '11px',
+                    fontWeight: 500,
+                    backgroundColor: 'white',
+                    cursor: 'pointer'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'white';
+                  }}
+                >
+                  {preset}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

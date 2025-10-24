@@ -579,7 +579,7 @@ export default function LoopLabView() {
         </div>
 
         <div>
-          <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} />
+          <TopBar isPlaying={isPlaying} bpm={bpm} onPlayPause={handlePlayPause} onSave={handleSave} onClearAll={handleClearAll} onBpmChange={setBpm} selectedKey={selectedKey} onKeyChange={setSelectedKey} resolution={resolution} onResolutionChange={setResolution} midiMetadata={midiMetadata} onMidiUpload={handlePlacementsLoaded} onShowMidiModal={() => setShowMidiModal(true)} ensureAudioEngine={ensureAudioEngine} isMobile={isMobile} />
 
         {/* Share Button */}
         {currentLoopId && (
@@ -608,8 +608,6 @@ export default function LoopLabView() {
               onDragEnd={() => setDraggingSound(null)}
               onPreviewSound={handlePreviewSound}
               isMobile={isMobile}
-              isPlaying={isPlaying}
-              onPlayPause={handlePlayPause}
             />
           </div>
 
