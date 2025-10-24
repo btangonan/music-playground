@@ -162,30 +162,33 @@ export default function LoopLabView() {
 
     try {
       const loopData = serializeLoop();
+      const loopId = currentLoopId || generateUUID();
 
-      // Use GitHub Gist for bulletproof saving
-      const { shareLoop, generateAppShareUrl } = await import('../services/sharing');
-      const result = await shareLoop(loopData);
-      const shareUrl = generateAppShareUrl(result.gistId);
+      // Save to localStorage (bulletproof, works everywhere)
+      const storageKey = `loop_${loopId}`;
+      localStorage.setItem(storageKey, JSON.stringify(loopData));
+
+      // Create shareable URL with loop ID
+      const shareUrl = new URL(window.location.href);
+      shareUrl.searchParams.set('loop', loopId);
+      const shareLink = shareUrl.toString();
 
       // Auto-copy to clipboard
       try {
-        await navigator.clipboard.writeText(shareUrl);
-        showToast('✓ Saved! Link copied to clipboard', 'success');
+        await navigator.clipboard.writeText(shareLink);
+        showToast('✓ Saved! Link copied - share with anyone', 'success');
       } catch {
-        showToast('✓ Saved! Share link ready', 'success');
+        showToast('✓ Saved! Copy URL to share', 'success');
       }
 
       // Update state
-      setCurrentLoopId(result.gistId);
+      setCurrentLoopId(loopId);
       setLastSaved(new Date());
 
-      // Update URL with gist ID for easy sharing
-      const url = new URL(window.location.href);
-      url.searchParams.set('gist', result.gistId);
-      window.history.replaceState(null, '', url.toString());
+      // Update URL with loop ID
+      window.history.replaceState(null, '', shareUrl.toString());
 
-      console.log('Loop saved to Gist:', result.gistId);
+      console.log('Loop saved to localStorage:', loopId);
     } catch (error: any) {
       const message = error?.message || 'Save failed. Please try again.';
       setSaveError(message);
@@ -523,7 +526,31 @@ export default function LoopLabView() {
 
   useEffect(() => { return () => { if (audioEngineRef.current) { audioEngineRef.current.stop(); audioEngineRef.current.dispose(); } }; }, []);
 
-  useEffect(() => { const loadLoopFromUrl = async () => { const url = new URL(window.location.href); const loopId = url.searchParams.get('loopId'); if (!loopId) { return; } try { const loop = await loopsApi.getLoop(loopId); deserializeLoop(loop); console.log('Loop loaded successfully:', loop.id); } catch (error) { const { message } = formatApiError(error); console.error('Failed to load loop:', message); showToast(`Failed to load loop: ${message}`, 'error'); const newUrl = new URL(window.location.href); newUrl.searchParams.delete('loopId'); window.history.replaceState(null, '', newUrl.toString()); } }; loadLoopFromUrl(); }, []);
+  useEffect(() => {
+    const loadLoopFromUrl = () => {
+      const url = new URL(window.location.href);
+      const loopId = url.searchParams.get('loop');
+      if (!loopId) return;
+
+      try {
+        const storageKey = `loop_${loopId}`;
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const loop = JSON.parse(stored);
+          deserializeLoop(loop);
+          console.log('Loop loaded from localStorage:', loopId);
+          showToast(`Loaded loop: ${loop.name}`, 'success');
+        } else {
+          console.warn('Loop not found in localStorage:', loopId);
+          showToast('Loop not found - creating new', 'info');
+        }
+      } catch (error) {
+        console.error('Failed to load loop:', error);
+        showToast('Failed to load loop', 'error');
+      }
+    };
+    loadLoopFromUrl();
+  }, []);
 
   // Handle gist import
   useEffect(() => {
