@@ -608,6 +608,8 @@ export default function LoopLabView() {
               onDragEnd={() => setDraggingSound(null)}
               onPreviewSound={handlePreviewSound}
               isMobile={isMobile}
+              isPlaying={isPlaying}
+              onPlayPause={handlePlayPause}
             />
           </div>
 

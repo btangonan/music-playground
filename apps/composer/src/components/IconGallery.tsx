@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Play, Square } from 'lucide-react';
 import { SOUND_ICONS } from './SoundIcons';
 
 interface IconGalleryProps {
@@ -9,9 +10,11 @@ interface IconGalleryProps {
   onDragEnd?: () => void;
   onPreviewSound?: (soundId: string) => void;
   isMobile?: boolean;
+  isPlaying?: boolean;
+  onPlayPause?: () => void;
 }
 
-export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile }: IconGalleryProps) {
+export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile, isPlaying, onPlayPause }: IconGalleryProps) {
   const [longPressSound, setLongPressSound] = useState<string | null>(null);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   return (
@@ -19,7 +22,8 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
       className={isMobile ? "w-full" : "flex items-center justify-center"}
       style={{
         paddingTop: '8px',
-        paddingBottom: '8px'
+        paddingBottom: '8px',
+        position: 'relative'
       }}
     >
       <div
@@ -143,6 +147,36 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
           );
         })}
       </div>
+
+      {/* Mobile Play Button - positioned to the right */}
+      {isMobile && onPlayPause && (
+        <button
+          onClick={onPlayPause}
+          className="bounce-transition hover:scale-105 active:scale-98"
+          style={{
+            position: 'absolute',
+            right: '16px',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            backgroundColor: '#FFD11A',
+            border: 'none',
+            borderRadius: '12px',
+            width: '56px',
+            height: '56px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            cursor: 'pointer'
+          }}
+        >
+          {isPlaying ? (
+            <Square className="w-6 h-6 fill-black stroke-black" />
+          ) : (
+            <Play className="w-6 h-6 fill-black stroke-black" />
+          )}
+        </button>
+      )}
     </div>
   );
 }
