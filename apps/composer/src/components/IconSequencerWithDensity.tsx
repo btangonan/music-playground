@@ -1076,7 +1076,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       }}>
         {isMobile ? '📱 MOBILE' : '💻 DESKTOP'} | {COLUMN_WIDTH}px cols | {gridTotalWidth}px grid
         <div style={{ fontSize: '9px', opacity: 0.8, marginTop: '4px' }}>
-          v2-FIX | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
+          v3-PROP-FIX | Grid: {gridWidth}px | Window: {typeof window !== 'undefined' ? window.innerWidth : '?'}px
         </div>
       </div>
       {/* Sequencer grid with scroll-based pitch control */}
@@ -1219,8 +1219,8 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
         <div style={{ width: `${gridTotalWidth}px`, paddingLeft: `${GRID_BORDER_WIDTH}px` }}>
           <ChordLabels
             barChords={barChords}
+            columnWidth={COLUMN_WIDTH}
             gridBorderWidth={GRID_BORDER_WIDTH}
-            gridWidth={gridWidth}
             debug={DEBUG}
           />
         </div>
