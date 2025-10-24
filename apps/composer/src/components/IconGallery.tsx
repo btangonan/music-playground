@@ -3,21 +3,31 @@ import { SOUND_ICONS } from './SoundIcons';
 interface IconGalleryProps {
   selectedSound: string | null;
   onSelectSound: (soundId: string) => void;
+  onSelectSoundForPlacement?: (soundId: string) => void;
   onDragStart?: (soundId: string) => void;
   onDragEnd?: () => void;
   onPreviewSound?: (soundId: string) => void;
+  isMobile?: boolean;
 }
 
-export default function IconGallery({ selectedSound, onSelectSound, onDragStart, onDragEnd, onPreviewSound }: IconGalleryProps) {
+export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile }: IconGalleryProps) {
   return (
     <div
-      className="flex items-center justify-center"
+      className={isMobile ? "overflow-x-auto w-full" : "flex items-center justify-center"}
       style={{
         paddingTop: '8px',
-        paddingBottom: '8px'
+        paddingBottom: '8px',
+        WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
+        scrollbarWidth: 'none', // Hide scrollbar on Firefox
+        msOverflowStyle: 'none' // Hide scrollbar on IE/Edge
       }}
     >
-      <div className="flex gap-[6px] items-start">
+      <style>{`
+        div::-webkit-scrollbar {
+          display: none; /* Hide scrollbar on Chrome/Safari */
+        }
+      `}</style>
+      <div className={`flex gap-[6px] items-start ${isMobile ? 'px-4' : ''}`} style={isMobile ? { minWidth: 'max-content' } : {}}>
         {SOUND_ICONS.map((sound, index) => {
           const IconComponent = sound.icon;
           const isSelected = selectedSound === sound.id;
@@ -32,12 +42,13 @@ export default function IconGallery({ selectedSound, onSelectSound, onDragStart,
                 draggable
                 onClick={() => {
                   onSelectSound(sound.id);
+                  onSelectSoundForPlacement?.(sound.id);
                   onPreviewSound?.(sound.id);
                 }}
                 className={`
                   flex-shrink-0 cursor-pointer flex items-center justify-center relative
                   transition-all duration-150
-                  ${isSelected ? 'scale-110' : 'hover:scale-110'}
+                  ${isSelected ? 'scale-110 ring-4 ring-blue-500 rounded-full' : 'hover:scale-110'}
                 `}
                 style={{
                   width: '44px',

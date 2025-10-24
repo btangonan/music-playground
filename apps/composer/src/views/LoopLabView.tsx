@@ -67,6 +67,18 @@ export default function LoopLabView() {
 
   const [pitchRange, setPitchRange] = useState<{ min: number; max: number } | null>(null);
 
+  // Mobile detection and tap-to-place states
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [selectedSoundForPlacement, setSelectedSoundForPlacement] = useState<string | null>(null);
+  const [selectedIconForDeletion, setSelectedIconForDeletion] = useState<any | null>(null);
+
+  // Update isMobile on resize
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const SNAP_DIVISOR = { '1/4': 4, '1/8': 2, '1/16': 1 } as const;
   const quantizeBar = (bar: number): number => {
     const divisor = SNAP_DIVISOR[resolution];
@@ -184,6 +196,43 @@ export default function LoopLabView() {
 
   const handleSelectSound = (soundId: string) => {
     setSelectedSound(soundId === selectedSound ? null : soundId);
+  };
+
+  // Tap-to-place handlers
+  const handleSelectSoundForPlacement = (soundId: string) => {
+    // Select sound for placement mode
+    setSelectedSoundForPlacement(soundId);
+    setSelectedSound(soundId); // Also set regular selectedSound for visual feedback
+    setSelectedIconForDeletion(null); // Clear any selected icon for deletion
+  };
+
+  const handleGridCellClick = (bar: number, pitch: number) => {
+    // If we have a sound selected for placement, place it
+    if (selectedSoundForPlacement) {
+      const newPlacement = {
+        soundId: selectedSoundForPlacement,
+        bar: quantizeBar(bar),
+        pitch,
+        row: 0,
+        velocity: 80,
+        duration16: 1
+      };
+      setPlacements([...placements, newPlacement]);
+      // Don't clear selection - allow multiple placements
+      // User can tap another sound to switch
+    }
+  };
+
+  const handleIconClick = (placement: any) => {
+    // Select icon for deletion
+    setSelectedIconForDeletion(placement);
+  };
+
+  const handleDeleteSelectedIcon = () => {
+    if (selectedIconForDeletion) {
+      setPlacements(placements.filter(p => p !== selectedIconForDeletion));
+      setSelectedIconForDeletion(null);
+    }
   };
 
   const handleClearAll = () => {
@@ -456,26 +505,38 @@ export default function LoopLabView() {
 
   return (
     <div className="min-h-screen flex items-center p-6" style={{ position: 'relative', fontFamily: 'Inter, system-ui, sans-serif', paddingTop: '40px', paddingBottom: '200px' }}>
-      {/* Video Background */}
-      <video
-        autoPlay
-        loop
-        muted
-        playsInline
-        style={{
+      {/* Background: Video on desktop, gradient on mobile */}
+      {!isMobile ? (
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            minWidth: '100%',
+            minHeight: '100%',
+            width: '100vw',
+            height: '100vh',
+            objectFit: 'cover',
+            zIndex: -1
+          }}
+        >
+          <source src="/sky3.mp4" type="video/mp4" />
+        </video>
+      ) : (
+        <div style={{
           position: 'fixed',
           top: 0,
           left: 0,
-          minWidth: '100%',
-          minHeight: '100%',
           width: '100vw',
           height: '100vh',
-          objectFit: 'cover',
+          background: 'linear-gradient(to bottom, #87CEEB, #E0F6FF)',
           zIndex: -1
-        }}
-      >
-        <source src="/sky3.mp4" type="video/mp4" />
-      </video>
+        }} />
+      )}
 
       <div className="max-w-[900px] mx-auto w-full">
         <div className="text-center mb-6">
@@ -509,19 +570,67 @@ export default function LoopLabView() {
 
           {/* Icon Gallery */}
           <div className="flex items-center justify-center">
-            <IconGallery selectedSound={selectedSound} onSelectSound={handleSelectSound} onDragStart={setDraggingSound} onDragEnd={() => setDraggingSound(null)} onPreviewSound={handlePreviewSound} />
+            <IconGallery
+              selectedSound={selectedSound}
+              onSelectSound={handleSelectSound}
+              onSelectSoundForPlacement={handleSelectSoundForPlacement}
+              onDragStart={setDraggingSound}
+              onDragEnd={() => setDraggingSound(null)}
+              onPreviewSound={handlePreviewSound}
+              isMobile={isMobile}
+            />
           </div>
 
           {/* Main sequencer area */}
           <div className="px-4 pb-4 flex flex-col items-start" style={{ paddingLeft: '56px', marginTop: '-2px' }}>
-            <IconSequencerWithDensity selectedSound={selectedSound} selectedKey={selectedKey} draggingSound={draggingSound} barChords={barChords} assignmentMode={assignmentMode} onBarChordAssign={handleBarChordAssign} currentStep={currentStep} isPlaying={isPlaying} placements={placements} onPlacementsChange={setPlacements} onPreviewNote={handlePreviewNote} resolution={resolution} quantizeBar={quantizeBar} octaveOffset={octaveOffset} onOctaveOffsetChange={setOctaveOffset} onChordSelect={handleChordSelect} onPresetSelect={handlePresetSelect} />
+            <IconSequencerWithDensity
+              selectedSound={selectedSound}
+              selectedKey={selectedKey}
+              draggingSound={draggingSound}
+              barChords={barChords}
+              assignmentMode={assignmentMode}
+              onBarChordAssign={handleBarChordAssign}
+              currentStep={currentStep}
+              isPlaying={isPlaying}
+              placements={placements}
+              onPlacementsChange={setPlacements}
+              onPreviewNote={handlePreviewNote}
+              resolution={resolution}
+              quantizeBar={quantizeBar}
+              octaveOffset={octaveOffset}
+              onOctaveOffsetChange={setOctaveOffset}
+              onChordSelect={handleChordSelect}
+              onPresetSelect={handlePresetSelect}
+              isMobile={isMobile}
+              onGridCellClick={handleGridCellClick}
+              onIconClick={handleIconClick}
+              selectedIconForDeletion={selectedIconForDeletion}
+              selectedSoundForPlacement={selectedSoundForPlacement}
+            />
           </div>
         </div>
 
-          <p className="text-[rgba(0,0,0,0.4)] mt-2 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
-            {assignmentMode ? `Click a bar to assign chord "${assignmentMode}"` : 'Drag sound icons from gallery onto the grid. Dark rows indicate good notes. Double-click to delete sounds.'}
-          </p>
-        </div>
+        {/* Delete button - shown when icon selected */}
+        {selectedIconForDeletion && (
+          <div className="mt-3 flex justify-center">
+            <button
+              onClick={handleDeleteSelectedIcon}
+              className="bg-red-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-600 active:scale-95 transition-all"
+              style={{ fontFamily: 'Inter', fontSize: '14px', minWidth: '120px', minHeight: '44px' }}
+            >
+              Delete Sound
+            </button>
+          </div>
+        )}
+
+        <p className="text-[rgba(0,0,0,0.4)] mt-2 italic text-center" style={{ fontFamily: 'Inter', fontWeight: 400, fontSize: '11px' }}>
+          {assignmentMode
+            ? `${isMobile ? 'Tap' : 'Click'} a bar to assign chord "${assignmentMode}"`
+            : isMobile
+              ? 'Tap a sound icon, then tap the grid to place it. Tap an icon to select, then tap Delete.'
+              : 'Drag sound icons from gallery onto the grid, or tap to place. Dark rows indicate good notes. Double-click to delete sounds.'}
+        </p>
+      </div>
 
         {midiMetadata && (<MidiInfoModal isOpen={showMidiModal} onClose={() => setShowMidiModal(false)} metadata={midiMetadata} currentBpm={bpm} onSyncBpm={handleSyncBpmToMidi} />)}
       </div>
