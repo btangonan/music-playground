@@ -158,7 +158,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
             right: '16px',
             bottom: '8px',
             width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap
-            height: 'calc((100% - 16px - 8px) / 2)', // One grid row: (container height - top padding - gap) / 2 rows
+            height: 'calc(((100% - 32px - 40px) / 6) + 4px + 8px)', // icon width (aspectRatio 1) + gap-1 + label
             backgroundColor: '#FFD11A',
             border: 'none',
             borderRadius: '8px',
