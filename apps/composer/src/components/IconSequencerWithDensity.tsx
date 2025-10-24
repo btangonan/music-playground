@@ -1048,7 +1048,7 @@ export default function IconSequencerWithDensity(props: IconSequencerWithDensity
       <div className="relative flex flex-col items-center" style={{ gap: '0px' }}>
         {/* Mobile scroll container - max height on mobile, full height on desktop */}
         <div
-          className={isMobile ? "overflow-y-auto w-full" : ""}
+          className={isMobile ? "overflow-auto w-full" : ""}
           style={isMobile ? {
             maxHeight: '60vh',
             WebkitOverflowScrolling: 'touch',
