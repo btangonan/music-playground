@@ -289,30 +289,39 @@ export default function LoopLabView() {
   const handlePlayPause = async () => {
     if (!audioEngineRef.current) {
       try {
+        console.log('[LoopLabView] Starting audio initialization...');
         setIsAudioInitializing(true);
         const engine = new AudioEngine();
+        console.log('[LoopLabView] AudioEngine created, calling start()...');
         await engine.start();  // This now includes ensureContextRunning()
+        console.log('[LoopLabView] AudioEngine.start() completed');
         audioEngineRef.current = engine;
         engine.setBPM(bpm);
         setIsAudioInitializing(false);
+        console.log('[LoopLabView] Audio initialization complete, starting playback');
 
         // Reset playhead to beginning before first play
         Tone.Transport.position = 0;
         setCurrentStep(0);
         Tone.Transport.start();
         setIsPlaying(true);
+        console.log('[LoopLabView] Playback started');
       } catch (err) {
-        console.error('Failed to initialize audio:', err);
+        console.error('[LoopLabView] Failed to initialize audio:', err);
         setIsAudioInitializing(false);
+        alert(`Audio initialization failed: ${err instanceof Error ? err.message : String(err)}`);
         return;  // Don't start playback if audio failed
       }
     } else {
       if (!isPlaying) {
+        console.log('[LoopLabView] Resuming playback...');
         // Ensure context is running before each play (handles tab switching, sleep mode)
         try {
           await audioEngineRef.current.ensureContextRunning();
+          console.log('[LoopLabView] Audio context resumed');
         } catch (err) {
-          console.error('Failed to resume audio:', err);
+          console.error('[LoopLabView] Failed to resume audio:', err);
+          alert(`Audio resume failed: ${err instanceof Error ? err.message : String(err)}`);
           return;
         }
 
@@ -322,7 +331,9 @@ export default function LoopLabView() {
         scheduleAllNotes();
         Tone.Transport.start();
         setIsPlaying(true);
+        console.log('[LoopLabView] Playback resumed');
       } else {
+        console.log('[LoopLabView] Stopping playback...');
         // Stop playback: clear scheduled events and release all active notes
         Tone.Transport.cancel();
         audioEngineRef.current.stopAllNotes();
@@ -330,19 +341,24 @@ export default function LoopLabView() {
         Tone.Transport.position = 0;
         setCurrentStep(0);
         setIsPlaying(false);
+        console.log('[LoopLabView] Playback stopped');
       }
     }
   };
 
   const handlePreviewSound = async (soundId: string) => {
+    console.log('[LoopLabView] Preview sound requested:', soundId);
     if (!audioEngineRef.current) {
       try {
+        console.log('[LoopLabView] Initializing audio for preview...');
         const engine = new AudioEngine();
         await engine.start();
         audioEngineRef.current = engine;
         engine.setBPM(bpm);
+        console.log('[LoopLabView] Audio initialized for preview');
       } catch (err) {
-        console.error('Failed to initialize audio for preview:', err);
+        console.error('[LoopLabView] Failed to initialize audio for preview:', err);
+        alert(`Preview audio failed: ${err instanceof Error ? err.message : String(err)}`);
         return;
       }
     }
@@ -356,7 +372,9 @@ export default function LoopLabView() {
       note = 'C1'; // Low bass frequency for all drums
     }
 
-    engine.scheduleNote(engineSoundId, note, '+0', 0.7);
+    console.log('[LoopLabView] Scheduling preview note:', engineSoundId, note);
+    const success = engine.scheduleNote(engineSoundId, note, '+0', 0.7);
+    console.log('[LoopLabView] Preview note scheduled:', success);
   };
 
   const handlePreviewNote = async (soundId: string, pitch: number) => {

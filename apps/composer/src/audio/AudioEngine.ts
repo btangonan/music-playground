@@ -45,13 +45,21 @@ export class AudioEngine {
    * Preloads all Sampler instruments to avoid first-use delay
    */
   async start(): Promise<void> {
-    if (this.initialized) return
+    if (this.initialized) {
+      console.log('[AudioEngine] Already initialized, skipping')
+      return
+    }
 
+    console.log('[AudioEngine] Starting Tone.js...')
     await Tone.start()
+    console.log('[AudioEngine] Tone.js started, context state:', Tone.context.state)
+
     await this.ensureContextRunning()  // Ensure context is running after Tone.start()
+    console.log('[AudioEngine] Context running confirmed')
 
     // Create master bus chain with corrected signal flow
     // Signal flow: Instrument → HPF → Compressor → Limiter → Master Channel → Destination
+    console.log('[AudioEngine] Creating master bus chain...')
     this.masterChannel = new Tone.Channel(-6).toDestination()
 
     // Optional: gentle HPF at 32 Hz to stabilize compressor against sub-bass energy
@@ -74,21 +82,27 @@ export class AudioEngine {
     if (this.hpf) this.hpf.connect(this.compressor)
     this.compressor.connect(this.limiter)
     this.limiter.connect(this.masterChannel)
+    console.log('[AudioEngine] Master bus chain created')
 
     // Create all instruments and route through master bus
+    console.log('[AudioEngine] Creating instruments...')
     for (const sound of Object.values(ICON_SOUNDS)) {
       const instrument = this.createInstrument(sound)
       // Connect to HPF if present, otherwise directly to compressor
       instrument.connect(this.hpf ?? this.compressor)
       this.instruments.set(sound.id, instrument)
     }
+    console.log('[AudioEngine] Created', this.instruments.size, 'instruments')
 
     // Wait for all audio buffers to load (includes Sampler samples)
     // This ensures piano samples are ready before first playback
+    console.log('[AudioEngine] Waiting for audio buffers to load...')
     await Tone.loaded()
+    console.log('[AudioEngine] Audio buffers loaded')
 
     Tone.Transport.start()
     this.initialized = true
+    console.log('[AudioEngine] Initialization complete')
   }
 
   stop(): void {
