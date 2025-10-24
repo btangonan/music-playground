@@ -13,21 +13,16 @@ interface IconGalleryProps {
 export default function IconGallery({ selectedSound, onSelectSound, onSelectSoundForPlacement, onDragStart, onDragEnd, onPreviewSound, isMobile }: IconGalleryProps) {
   return (
     <div
-      className={isMobile ? "overflow-x-auto w-full" : "flex items-center justify-center"}
+      className={isMobile ? "w-full" : "flex items-center justify-center"}
       style={{
         paddingTop: '8px',
-        paddingBottom: '8px',
-        WebkitOverflowScrolling: 'touch', // Smooth scrolling on iOS
-        scrollbarWidth: 'none', // Hide scrollbar on Firefox
-        msOverflowStyle: 'none' // Hide scrollbar on IE/Edge
+        paddingBottom: '8px'
       }}
     >
-      <style>{`
-        div::-webkit-scrollbar {
-          display: none; /* Hide scrollbar on Chrome/Safari */
-        }
-      `}</style>
-      <div className={`flex gap-[6px] items-start ${isMobile ? 'px-4' : ''}`} style={isMobile ? { minWidth: 'max-content' } : {}}>
+      <div
+        className={isMobile ? "grid grid-cols-6 gap-2 px-4" : "flex gap-[6px] items-start"}
+        style={isMobile ? { gridTemplateRows: 'repeat(2, 1fr)' } : {}}
+      >
         {SOUND_ICONS.map((sound, index) => {
           const IconComponent = sound.icon;
           const isSelected = selectedSound === sound.id;
@@ -36,7 +31,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
             <div
               key={sound.id}
               className="flex flex-col items-center gap-1"
-              style={{ width: '44px' }}
+              style={isMobile ? { width: '100%' } : { width: '44px' }}
             >
               <div
                 draggable
@@ -50,7 +45,11 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
                   transition-all duration-150
                   ${isSelected ? 'scale-110 ring-4 ring-blue-500 rounded-full' : 'hover:scale-110'}
                 `}
-                style={{
+                style={isMobile ? {
+                  width: '100%',
+                  aspectRatio: '1',
+                  padding: '2px'
+                } : {
                   width: '44px',
                   height: '44px',
                   padding: '2px'
@@ -86,7 +85,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
                   onDragEnd?.();
                 }}
               >
-                <div style={{ width: '40px', height: '40px' }}>
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <IconComponent />
                 </div>
               </div>
@@ -94,7 +93,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
               {/* Label beneath icon */}
               <span
                 style={{
-                  fontSize: '9px',
+                  fontSize: isMobile ? '8px' : '9px',
                   fontFamily: 'Inter, system-ui, sans-serif',
                   fontWeight: 500,
                   color: 'rgba(0,0,0,0.6)',
