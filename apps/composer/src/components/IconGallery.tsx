@@ -148,15 +148,14 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
         })}
       </div>
 
-      {/* Mobile Play Button - positioned on bottom row after Riser */}
+      {/* Mobile Play Button - positioned on bottom row after Riser, 2x width */}
       {isMobile && onPlayPause && (
         <div
           style={{
             position: 'absolute',
             right: '16px',
             bottom: '8px',
-            width: 'calc((100% - 32px - 40px) / 6)', // Match icon width (grid-cols-6 with 2px gap)
-            aspectRatio: '1',
+            width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap (8px = gap-2)
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -171,7 +170,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
               border: 'none',
               borderRadius: '8px',
               width: '100%',
-              height: '100%',
+              aspectRatio: '2 / 1', // 2:1 width to height ratio for rectangular button
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
