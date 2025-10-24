@@ -148,7 +148,7 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
         })}
       </div>
 
-      {/* Mobile Play Button - full height spanning icon + label space */}
+      {/* Mobile Play Button - positioned on bottom row after Riser, 2x width, no label */}
       {isMobile && onPlayPause && (
         <button
           onClick={onPlayPause}
@@ -156,9 +156,9 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
           style={{
             position: 'absolute',
             right: '16px',
-            bottom: '8px',
+            bottom: '4px', // Moved down from 8px
             width: 'calc(((100% - 32px - 40px) / 6) * 2 + 8px)', // 2x icon width + 1 gap
-            height: 'calc(100% - 16px)', // Full vertical height minus padding (8px top + 8px bottom)
+            aspectRatio: '2 / 1',
             backgroundColor: '#FFD11A',
             border: 'none',
             borderRadius: '8px',
@@ -170,9 +170,9 @@ export default function IconGallery({ selectedSound, onSelectSound, onSelectSoun
           }}
         >
           {isPlaying ? (
-            <Square style={{ width: '24px', height: '24px' }} className="fill-black stroke-black" />
+            <Square style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
           ) : (
-            <Play style={{ width: '24px', height: '24px' }} className="fill-black stroke-black" />
+            <Play style={{ width: '70%', height: '70%' }} className="fill-black stroke-black" />
           )}
         </button>
       )}
