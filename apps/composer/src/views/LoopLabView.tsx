@@ -612,7 +612,7 @@ export default function LoopLabView() {
           </div>
 
           {/* Main sequencer area */}
-          <div className="px-4 pb-4 flex flex-col items-start" style={{ paddingLeft: '56px', marginTop: '-2px' }}>
+          <div className={`px-4 pb-4 flex flex-col ${isMobile ? 'items-center' : 'items-start'}`} style={{ paddingLeft: isMobile ? '0' : '56px', marginTop: '-2px' }}>
             <IconSequencerWithDensity
               selectedSound={selectedSound}
               selectedKey={selectedKey}
