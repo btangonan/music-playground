@@ -291,7 +291,7 @@ export default function LoopLabView() {
       try {
         setIsAudioInitializing(true);
         const engine = new AudioEngine();
-        await engine.start();
+        await engine.start();  // This now includes ensureContextRunning()
         audioEngineRef.current = engine;
         engine.setBPM(bpm);
         setIsAudioInitializing(false);
@@ -304,9 +304,18 @@ export default function LoopLabView() {
       } catch (err) {
         console.error('Failed to initialize audio:', err);
         setIsAudioInitializing(false);
+        return;  // Don't start playback if audio failed
       }
     } else {
       if (!isPlaying) {
+        // Ensure context is running before each play (handles tab switching, sleep mode)
+        try {
+          await audioEngineRef.current.ensureContextRunning();
+        } catch (err) {
+          console.error('Failed to resume audio:', err);
+          return;
+        }
+
         // Reset playhead and schedule events BEFORE starting transport (eliminates race condition)
         Tone.Transport.position = 0;
         setCurrentStep(0);
@@ -378,9 +387,12 @@ export default function LoopLabView() {
   const ensureAudioEngine = async () => {
     if (!audioEngineRef.current) {
       const engine = new AudioEngine();
-      await engine.start();
+      await engine.start();  // Includes ensureContextRunning()
       audioEngineRef.current = engine;
       engine.setBPM(bpm);
+    } else {
+      // Ensure context is running for preview sounds (handles suspended state)
+      await audioEngineRef.current.ensureContextRunning();
     }
     return audioEngineRef.current;
   };

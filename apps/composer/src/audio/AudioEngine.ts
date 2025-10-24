@@ -48,6 +48,7 @@ export class AudioEngine {
     if (this.initialized) return
 
     await Tone.start()
+    await this.ensureContextRunning()  // Ensure context is running after Tone.start()
 
     // Create master bus chain with corrected signal flow
     // Signal flow: Instrument → HPF → Compressor → Limiter → Master Channel → Destination
@@ -96,6 +97,24 @@ export class AudioEngine {
 
   setBPM(bpm: number): void {
     Tone.Transport.bpm.value = bpm
+  }
+
+  /**
+   * Ensure audio context is running (not suspended)
+   * Mobile browsers require explicit user gesture to resume audio context
+   * Call this before any playback operation
+   */
+  async ensureContextRunning(): Promise<void> {
+    if (Tone.context.state !== 'running') {
+      console.log('[AudioEngine] Resuming audio context, current state:', Tone.context.state)
+      try {
+        await Tone.context.resume()
+        console.log('[AudioEngine] Context resumed, new state:', Tone.context.state)
+      } catch (err) {
+        console.error('[AudioEngine] Failed to resume context:', err)
+        throw new Error('Audio playback blocked. Please try again.')
+      }
+    }
   }
 
   /**
