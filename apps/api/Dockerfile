@@ -30,6 +30,9 @@ COPY apps/api/package.json ./apps/api/
 # Copy built dist from builder stage
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 
+# Copy compiled shared types to match package.json exports
+COPY --from=builder /app/apps/api/dist/shared/types/schemas.js ./shared/types/schemas.js
+
 # Install production dependencies only
 RUN corepack enable && corepack prepare pnpm@latest --activate
 RUN pnpm install --prod --frozen-lockfile
