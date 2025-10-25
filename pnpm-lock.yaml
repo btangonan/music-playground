@@ -23,6 +23,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@music/types':
+        specifier: workspace:*
+        version: link:../../shared/types
       '@types/bcrypt':
         specifier: ^5.0.2
         version: 5.0.2
