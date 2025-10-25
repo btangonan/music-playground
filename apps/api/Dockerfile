@@ -38,4 +38,4 @@ WORKDIR /app/apps/api
 
 EXPOSE 10000
 
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/apps/api/src/index.js"]
